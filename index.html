@@ -3,129 +3,216 @@
 <head>
   <title>Email Client</title>
   <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
-    display: flex;
-    height: 100vh;
-    font-family: Arial, sans-serif;
-  }
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
 
-  .sidebar {
-    width: 200px;
-    background: #f6f8fc;
-    padding: 20px;
-    border-right: 1px solid #ddd;
-  }
+    /* TOP HEADER */
+    .header {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      border-bottom: 1px solid #ddd;
+      gap: 20px;
+      background: white;
+    }
 
-  .email-list {
-    width: 300px;
-    border-right: 1px solid #ddd;
-    padding: 10px;
-  }
+    .header h1 {
+      font-size: 22px;
+      color: #5f6368;
+      min-width: 80px;
+    }
 
-  .email-view {
-    flex: 1;
-    padding: 20px;
-  }
+    .header h1 span { color: #EA4335; }
 
-  .email-item {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-    cursor: pointer;
-  }
+    .search-bar {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: #eaf1fb;
+      border-radius: 25px;
+      padding: 10px 20px;
+      gap: 10px;
+      max-width: 700px;
+    }
 
-  .email-item:hover {
-    background: #f0f0f0;
-  }
+    .search-bar input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 16px;
+      width: 100%;
+    }
 
-  h2 {
-  font-size: 22px;
-  margin-bottom: 15px;
-}
+    /* BODY LAYOUT */
+    .body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
 
-button {
-  background: #c2e7ff;
-  border: none;
-  padding: 15px 25px;
-  border-radius: 20px;
-  font-size: 14px;
-  cursor: pointer;
-  margin-bottom: 15px;
-  width: 100%;
-}
+    /* SIDEBAR */
+    .sidebar {
+      width: 180px;
+      padding: 10px 0;
+      border-right: 1px solid #ddd;
+      background: white;
+    }
 
-button:hover {
-  background: #a8d5f5;
-}
+    .compose-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 5px 10px 15px;
+      padding: 16px 20px;
+      background: #c2e7ff;
+      border: none;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      width: calc(100% - 20px);
+    }
 
-ul {
-  list-style: none;
-}
+    .compose-btn:hover { background: #a8d5f5; }
 
-ul li {
-  padding: 8px 10px;
-  border-radius: 0 20px 20px 0;
-  cursor: pointer;
-  font-size: 14px;
-}
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 8px 20px;
+      border-radius: 0 25px 25px 0;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
 
-ul li:hover {
-  background: #e2e8f0;
-}
+    .nav-item:hover { background: #e8eaed; }
+    .nav-item.active { background: #d3e3fd; font-weight: bold; }
 
-input[type="text"] {
-  width: 100%;
-  padding: 10px 15px;
-  border: 1px solid #ddd;
-  border-radius: 25px;
-  font-size: 14px;
-  margin-bottom: 10px;
-  background: #f0f0f0;
-  outline: none;
-}
+    /* EMAIL LIST */
+    .email-list {
+      flex: 1;
+      overflow-y: auto;
+      background: white;
+    }
 
-.email-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-</style>
+    .inbox-tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      padding: 0 10px;
+    }
 
+    .tab {
+      padding: 15px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #444;
+      border-bottom: 3px solid transparent;
+    }
 
+    .tab.active {
+      color: #1a73e8;
+      border-bottom: 3px solid #1a73e8;
+    }
 
+    .email-row {
+      display: flex;
+      align-items: center;
+      padding: 8px 15px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .email-row:hover { background: #f5f5f5; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .email-row.unread { font-weight: bold; background: white; }
+
+    .email-row input[type="checkbox"] { flex-shrink: 0; }
+
+    .star { color: #ddd; font-size: 18px; flex-shrink: 0; }
+    .star.starred { color: #f4b400; }
+
+    .sender { min-width: 160px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .email-content { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .email-content .subject { }
+    .email-content .preview { color: #777; font-weight: normal; }
+
+    .time { min-width: 60px; text-align: right; font-size: 13px; color: #777; }
   </style>
 </head>
 <body>
 
-  <div class="sidebar">
-    <h2>Mail</h2>
-    <button>Compose</button>
-    <ul>
-      <li>Inbox</li>
-      <li>Starred</li>
-      <li>Sent</li>
-      <li>Drafts</li>
-      <li>Trash</li>
-    </ul>
-  </div>
-
-  <div class="email-list">
-    <input type="text" placeholder="Search mail...">
-    <div class="email-item">
-      <span>John Doe</span>
-      <span>Hello there!</span>
-      <span>10:42 AM</span>
-    </div>
-    <div class="email-item">
-      <span>Jane Smith</span>
-      <span>Meeting tomorrow</span>
-      <span>9:15 AM</span>
+  <!-- HEADER -->
+  <div class="header">
+    <h1>M<span>.</span></h1>
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" placeholder="Search mail">
     </div>
   </div>
 
-  <div class="email-view">
-    <h2>Select an email to read</h2>
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <button class="compose-btn">✏️ Compose</button>
+      <div class="nav-item active">📥 Inbox</div>
+      <div class="nav-item">⭐ Starred</div>
+      <div class="nav-item">📤 Sent</div>
+      <div class="nav-item">📝 Drafts</div>
+      <div class="nav-item">🗑️ Trash</div>
+    </div>
+
+    <!-- EMAIL LIST -->
+    <div class="email-list">
+      <div class="inbox-tabs">
+        <div class="tab active">Primary</div>
+        <div class="tab">Promotions</div>
+        <div class="tab">Social</div>
+      </div>
+
+      <div class="email-row unread">
+        <input type="checkbox">
+        <span class="star">☆</span>
+        <span class="sender">John Doe</span>
+        <div class="email-content">
+          <span class="subject">Hello there! </span>
+          <span class="preview">— Hey how are you doing today...</span>
+        </div>
+        <span class="time">10:42 AM</span>
+      </div>
+
+      <div class="email-row unread">
+        <input type="checkbox">
+        <span class="star">☆</span>
+        <span class="sender">Jane Smith</span>
+        <div class="email-content">
+          <span class="subject">Meeting tomorrow </span>
+          <span class="preview">— Just a reminder about our 9am...</span>
+        </div>
+        <span class="time">9:15 AM</span>
+      </div>
+
+      <div class="email-row">
+        <input type="checkbox">
+        <span class="star starred">★</span>
+        <span class="sender">GitHub</span>
+        <div class="email-content">
+          <span class="subject">Your push was successful </span>
+          <span class="preview">— Great work, your code is live...</span>
+        </div>
+        <span class="time">Yesterday</span>
+      </div>
+
+    </div>
   </div>
 
 </body>
