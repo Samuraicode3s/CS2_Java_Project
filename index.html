@@ -1,9 +1,37 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Email Client</title>
-  </head>
-  <body>
-    <h1>Hello World</h1>
-  </body>
+<head>
+  <title>Email Client</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      display: flex;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    .sidebar {
+      width: 200px;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+
+    .main {
+      flex: 1;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>Mail</h2>
+  </div>
+
+  <div class="main">
+    <h1>Inbox</h1>
+  </div>
+
+</body>
 </html>
