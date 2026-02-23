@@ -2,35 +2,37 @@
 <html>
 <head>
   <title>Email Client</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      display: flex;
-      height: 100vh;
-      font-family: Arial, sans-serif;
-    }
-
-    .sidebar {
-      width: 200px;
-      background: #f0f0f0;
-      padding: 20px;
-    }
-
-    .main {
-      flex: 1;
-      padding: 20px;
-    }
-  </style>
 </head>
 <body>
 
   <div class="sidebar">
     <h2>Mail</h2>
+    <button>Compose</button>
+    <ul>
+      <li>Inbox</li>
+      <li>Starred</li>
+      <li>Sent</li>
+      <li>Drafts</li>
+      <li>Trash</li>
+    </ul>
   </div>
 
-  <div class="main">
-    <h1>Inbox</h1>
+  <div class="email-list">
+    <input type="text" placeholder="Search mail...">
+    <div class="email-item">
+      <span>John Doe</span>
+      <span>Hello there!</span>
+      <span>10:42 AM</span>
+    </div>
+    <div class="email-item">
+      <span>Jane Smith</span>
+      <span>Meeting tomorrow</span>
+      <span>9:15 AM</span>
+    </div>
+  </div>
+
+  <div class="email-view">
+    <h2>Select an email to read</h2>
   </div>
 
 </body>
