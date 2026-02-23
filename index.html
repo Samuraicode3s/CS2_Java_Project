@@ -2,6 +2,47 @@
 <html>
 <head>
   <title>Email Client</title>
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    display: flex;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+  }
+
+  .sidebar {
+    width: 200px;
+    background: #f6f8fc;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+  }
+
+  .email-list {
+    width: 300px;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+  }
+
+  .email-view {
+    flex: 1;
+    padding: 20px;
+  }
+
+  .email-item {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+  }
+
+  .email-item:hover {
+    background: #f0f0f0;
+  }
+</style>
+
+
+
+  </style>
 </head>
 <body>
 
