@@ -12,7 +12,6 @@
       height: 100vh;
     }
 
-    /* TOP HEADER */
     .header {
       display: flex;
       align-items: center;
@@ -22,12 +21,7 @@
       background: white;
     }
 
-    .header h1 {
-      font-size: 22px;
-      color: #5f6368;
-      min-width: 80px;
-    }
-
+    .header h1 { font-size: 22px; color: #5f6368; min-width: 80px; }
     .header h1 span { color: #EA4335; }
 
     .search-bar {
@@ -49,14 +43,8 @@
       width: 100%;
     }
 
-    /* BODY LAYOUT */
-    .body {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
+    .body { display: flex; flex: 1; overflow: hidden; }
 
-    /* SIDEBAR */
     .sidebar {
       width: 180px;
       padding: 10px 0;
@@ -94,12 +82,7 @@
     .nav-item:hover { background: #e8eaed; }
     .nav-item.active { background: #d3e3fd; font-weight: bold; }
 
-    /* EMAIL LIST */
-    .email-list {
-      flex: 1;
-      overflow-y: auto;
-      background: white;
-    }
+    .email-list { flex: 1; overflow-y: auto; background: white; }
 
     .inbox-tabs {
       display: flex;
@@ -115,10 +98,7 @@
       border-bottom: 3px solid transparent;
     }
 
-    .tab.active {
-      color: #1a73e8;
-      border-bottom: 3px solid #1a73e8;
-    }
+    .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; }
 
     .email-row {
       display: flex;
@@ -132,7 +112,6 @@
 
     .email-row:hover { background: #f5f5f5; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .email-row.unread { font-weight: bold; background: white; }
-
     .email-row input[type="checkbox"] { flex-shrink: 0; }
 
     .star { color: #ddd; font-size: 18px; flex-shrink: 0; }
@@ -141,10 +120,36 @@
     .sender { min-width: 160px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     .email-content { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .email-content .subject { }
     .email-content .preview { color: #777; font-weight: normal; }
 
     .time { min-width: 60px; text-align: right; font-size: 13px; color: #777; }
+
+    .email-panel {
+      width: 500px;
+      border-left: 1px solid #ddd;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-placeholder {
+      color: #aaa;
+      text-align: center;
+      margin-top: 100px;
+      font-size: 15px;
+    }
+
+    .email-header {
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 15px;
+      margin-bottom: 15px;
+    }
+
+    .email-header h2 { font-size: 20px; margin-bottom: 8px; }
+    .from { font-size: 14px; color: #444; margin-bottom: 4px; }
+    .date { font-size: 13px; color: #777; }
+    .email-body { font-size: 14px; line-height: 1.6; color: #333; }
   </style>
 </head>
 <body>
@@ -164,11 +169,11 @@
     <!-- SIDEBAR -->
     <div class="sidebar">
       <button class="compose-btn">Compose</button>
-<div class="nav-item active">Inbox</div>
-<div class="nav-item">Starred</div>
-<div class="nav-item">Sent</div>
-<div class="nav-item">Drafts</div>
-<div class="nav-item">Trash</div>
+      <div class="nav-item active">Inbox</div>
+      <div class="nav-item">Starred</div>
+      <div class="nav-item">Sent</div>
+      <div class="nav-item">Drafts</div>
+      <div class="nav-item">Trash</div>
     </div>
 
     <!-- EMAIL LIST -->
@@ -189,7 +194,7 @@
         </div>
         <span class="time">10:42 AM</span>
       </div>
-      
+
       <div class="email-row unread">
         <input type="checkbox">
         <span class="star">☆</span>
@@ -200,7 +205,7 @@
         </div>
         <span class="time">9:15 AM</span>
       </div>
-      
+
       <div class="email-row">
         <input type="checkbox">
         <span class="star">☆</span>
@@ -213,7 +218,54 @@
       </div>
 
     </div>
+
+    <!-- EMAIL READING PANEL -->
+    <div class="email-panel" id="emailPanel">
+      <div class="panel-placeholder">
+        <p>Select an email to read</p>
+      </div>
+    </div>
+
   </div>
+
+  <script>
+    const emails = [
+      {
+        sender: "Name",
+        subject: "Subject",
+        time: "10:42 AM",
+        body: "This is the full email body text. When you connect your Java backend this will be real email content."
+      },
+      {
+        sender: "Name",
+        subject: "Subject",
+        time: "9:15 AM",
+        body: "This is another email body. Lorem ipsum dolor sit amet consectetur."
+      },
+      {
+        sender: "Name",
+        subject: "Subject",
+        time: "Yesterday",
+        body: "This is the third email body. More content will go here."
+      }
+    ];
+
+    document.querySelectorAll('.email-row').forEach((row, index) => {
+      row.addEventListener('click', function() {
+        const email = emails[index];
+        document.getElementById('emailPanel').innerHTML = `
+          <div class="email-header">
+            <h2>${email.subject}</h2>
+            <p class="from">From: <strong>${email.sender}</strong></p>
+            <p class="date">${email.time}</p>
+          </div>
+          <div class="email-body">
+            <p>${email.body}</p>
+          </div>
+        `;
+      });
+    });
+  </script>
 
 </body>
 </html>
