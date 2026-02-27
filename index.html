@@ -43,6 +43,21 @@
       width: 100%;
     }
 
+    .account-icon {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #1a73e8;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: auto;
+    }
+
     .body { display: flex; flex: 1; overflow: hidden; }
 
     .sidebar {
@@ -149,7 +164,143 @@
     .email-header h2 { font-size: 20px; margin-bottom: 8px; }
     .from { font-size: 14px; color: #444; margin-bottom: 4px; }
     .date { font-size: 13px; color: #777; }
-    .email-body { font-size: 14px; line-height: 1.6; color: #333; }
+    .email-body { font-size: 14px; line-height: 1.6; color: #333; margin-bottom: 20px; }
+
+    .email-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .action-btn {
+      padding: 8px 18px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      background: white;
+      font-size: 13px;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+    }
+
+    .action-btn:hover { background: #f0f0f0; }
+
+    .reply-box {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+
+    .reply-box p { font-size: 13px; color: #777; margin-bottom: 8px; }
+
+    .reply-box textarea {
+      width: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      height: 100px;
+    }
+
+    .reply-box-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+
+    .send-reply-btn {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+    }
+
+    .send-reply-btn:hover { background: #1558b0; }
+
+    /* COMPOSE MODAL */
+    .compose-modal {
+      position: fixed;
+      bottom: 0;
+      right: 20px;
+      width: 440px;
+      background: white;
+      border-radius: 10px 10px 0 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      display: none;
+      flex-direction: column;
+    }
+
+    .compose-modal.open { display: flex; }
+
+    .compose-header {
+      background: #404040;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .close-compose {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      width: auto;
+      margin: 0;
+    }
+
+    .compose-fields { display: flex; flex-direction: column; }
+
+    .compose-fields input {
+      border: none;
+      border-bottom: 1px solid #ddd;
+      padding: 10px 15px;
+      font-size: 14px;
+      outline: none;
+      border-radius: 0;
+      background: white;
+    }
+
+    .compose-fields textarea {
+      border: none;
+      padding: 15px;
+      font-size: 14px;
+      outline: none;
+      resize: none;
+      height: 200px;
+      font-family: Arial, sans-serif;
+    }
+
+    .compose-footer {
+      padding: 10px 15px;
+      border-top: 1px solid #ddd;
+    }
+
+    .send-btn {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 25px;
+      font-size: 14px;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+    }
+
+    .send-btn:hover { background: #1558b0; }
   </style>
 </head>
 <body>
@@ -161,6 +312,7 @@
       <span>🔍</span>
       <input type="text" placeholder="Search mail">
     </div>
+    <div class="account-icon" title="placeholder@email.com">P</div>
   </div>
 
   <!-- BODY -->
@@ -168,7 +320,7 @@
 
     <!-- SIDEBAR -->
     <div class="sidebar">
-      <button class="compose-btn">Compose</button>
+      <button class="compose-btn" onclick="openCompose()">Compose</button>
       <div class="nav-item active">Inbox</div>
       <div class="nav-item">Starred</div>
       <div class="nav-item">Sent</div>
@@ -228,6 +380,23 @@
 
   </div>
 
+  <!-- COMPOSE MODAL -->
+  <div class="compose-modal" id="composeModal">
+    <div class="compose-header">
+      <span id="composeTitle">New Message</span>
+      <button class="close-compose" onclick="closeCompose()">✕</button>
+    </div>
+    <div class="compose-fields">
+      <input type="text" id="composeTo" placeholder="To">
+      <input type="text" id="composeCC" placeholder="CC">
+      <input type="text" id="composeSubject" placeholder="Subject">
+      <textarea id="composeBody" placeholder="Write your message..."></textarea>
+    </div>
+    <div class="compose-footer">
+      <button class="send-btn">Send ➤</button>
+    </div>
+  </div>
+
   <script>
     const emails = [
       {
@@ -246,25 +415,70 @@
         sender: "Name3",
         subject: "Subject3",
         time: "Yesterday",
-        body: "This is the third emasil body. More content will go here."
+        body: "This is the third email body. More content will go here."
       }
     ];
 
+    let currentEmail = null;
+
     document.querySelectorAll('.email-row').forEach((row, index) => {
       row.addEventListener('click', function() {
-        const email = emails[index];
+        currentEmail = emails[index];
         document.getElementById('emailPanel').innerHTML = `
           <div class="email-header">
-            <h2>${email.subject}</h2>
-            <p class="from">From: <strong>${email.sender}</strong></p>
-            <p class="date">${email.time}</p>
+            <h2>${currentEmail.subject}</h2>
+            <p class="from">From: <strong>${currentEmail.sender}</strong></p>
+            <p class="date">${currentEmail.time}</p>
+          </div>
+          <div class="email-actions">
+            <button class="action-btn" onclick="reply()">↩ Reply</button>
+            <button class="action-btn" onclick="replyAll()">↩ Reply All</button>
+            <button class="action-btn" onclick="forwardEmail()">→ Forward</button>
           </div>
           <div class="email-body">
-            <p>${email.body}</p>
+            <p>${currentEmail.body}</p>
+          </div>
+          <div class="reply-box" id="replyBox" style="display:none;">
+            <p id="replyLabel">Reply to ${currentEmail.sender}</p>
+            <textarea id="replyText" placeholder="Write your reply..."></textarea>
+            <div class="reply-box-footer">
+              <button class="send-reply-btn">Send ➤</button>
+            </div>
           </div>
         `;
       });
     });
+
+    function reply() {
+      document.getElementById('replyBox').style.display = 'block';
+      document.getElementById('replyLabel').textContent = `Reply to ${currentEmail.sender}`;
+      document.getElementById('replyText').value = '';
+    }
+
+    function replyAll() {
+      document.getElementById('replyBox').style.display = 'block';
+      document.getElementById('replyLabel').textContent = `Reply All`;
+      document.getElementById('replyText').value = '';
+    }
+
+    function forwardEmail() {
+      openCompose();
+      document.getElementById('composeTitle').textContent = 'Forward';
+      document.getElementById('composeSubject').value = `Fwd: ${currentEmail.subject}`;
+      document.getElementById('composeBody').value = `\n\n---------- Forwarded message ----------\nFrom: ${currentEmail.sender}\n\n${currentEmail.body}`;
+    }
+
+    function openCompose() {
+      document.getElementById('composeModal').classList.add('open');
+      document.getElementById('composeTitle').textContent = 'New Message';
+      document.getElementById('composeTo').value = '';
+      document.getElementById('composeSubject').value = '';
+      document.getElementById('composeBody').value = '';
+    }
+
+    function closeCompose() {
+      document.getElementById('composeModal').classList.remove('open');
+    }
   </script>
 
 </body>
