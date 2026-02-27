@@ -301,6 +301,58 @@
     }
 
     .send-btn:hover { background: #1558b0; }
+
+    .attachments {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.attachments-title {
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  margin-bottom: 8px;
+}
+
+.attachment-icon { font-size: 20px; }
+
+.attachment-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.attachment-size {
+  font-size: 12px;
+  color: #777;
+}
+
+.download-btn {
+  background: #1a73e8;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  cursor: pointer;
+  width: auto;
+  margin: 0;
+}
+
+.download-btn:hover { background: #1558b0; }
+
   </style>
 </head>
 <body>
@@ -399,25 +451,33 @@
 
   <script>
     const emails = [
-      {
-        sender: "Name1",
-        subject: "Subject1",
-        time: "10:42 AM",
-        body: "This is the full email body text. When you connect your Java backend this will be real email content."
-      },
-      {
-        sender: "Name2",
-        subject: "Subject2",
-        time: "9:15 AM",
-        body: "This is another email body. These are placeholders for now."
-      },
-      {
-        sender: "Name3",
-        subject: "Subject3",
-        time: "Yesterday",
-        body: "This is the third email body. More content will go here."
-      }
-    ];
+  {
+    sender: "Name1",
+    subject: "Subject1",
+    time: "10:42 AM",
+    body: "This is the full email body text.",
+    attachments: [
+      { name: "document.pdf", size: "2.4 MB" },
+      { name: "photo.png", size: "1.1 MB" }
+    ]
+  },
+  {
+    sender: "Name2",
+    subject: "Subject2",
+    time: "9:15 AM",
+    body: "This is another email body.",
+    attachments: []
+  },
+  {
+    sender: "Name3",
+    subject: "Subject3",
+    time: "Yesterday",
+    body: "This is the third email body.",
+    attachments: [
+      { name: "notes.txt", size: "12 KB" }
+    ]
+  }
+];
 
     let currentEmail = null;
 
@@ -438,6 +498,19 @@
           <div class="email-body">
             <p>${currentEmail.body}</p>
           </div>
+          ${currentEmail.attachments.length > 0 ? `
+            <div class="attachments">
+              <p class="attachments-title">📎 Attachments (${currentEmail.attachments.length})</p>
+              ${currentEmail.attachments.map(a => `
+                <div class="attachment-item">
+                  <span class="attachment-icon">📄</span>
+                  <span class="attachment-name">${a.name}</span>
+                  <span class="attachment-size">${a.size}</span>
+                  <button class="download-btn">Download</button>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
           <div class="reply-box" id="replyBox" style="display:none;">
             <p id="replyLabel">Reply to ${currentEmail.sender}</p>
             <textarea id="replyText" placeholder="Write your reply..."></textarea>
