@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Email Client</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
       font-family: Arial, sans-serif;
@@ -21,8 +26,15 @@
       background: white;
     }
 
-    .header h1 { font-size: 22px; color: #5f6368; min-width: 80px; }
-    .header h1 span { color: #EA4335; }
+    .header h1 {
+      font-size: 22px;
+      color: #5f6368;
+      min-width: 80px;
+    }
+
+    .header h1 span {
+      color: #EA4335;
+    }
 
     .search-bar {
       flex: 1;
@@ -58,7 +70,11 @@
       margin-left: auto;
     }
 
-    .body { display: flex; flex: 1; overflow: hidden; }
+    .body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
 
     .sidebar {
       width: 180px;
@@ -81,7 +97,9 @@
       width: calc(100% - 20px);
     }
 
-    .compose-btn:hover { background: #a8d5f5; }
+    .compose-btn:hover {
+      background: #a8d5f5;
+    }
 
     .nav-item {
       display: flex;
@@ -94,10 +112,20 @@
       margin-right: 10px;
     }
 
-    .nav-item:hover { background: #e8eaed; }
-    .nav-item.active { background: #d3e3fd; font-weight: bold; }
+    .nav-item:hover {
+      background: #e8eaed;
+    }
 
-    .email-list { flex: 1; overflow-y: auto; background: white; }
+    .nav-item.active {
+      background: #d3e3fd;
+      font-weight: bold;
+    }
+
+    .email-list {
+      flex: 1;
+      overflow-y: auto;
+      background: white;
+    }
 
     .inbox-tabs {
       display: flex;
@@ -113,7 +141,10 @@
       border-bottom: 3px solid transparent;
     }
 
-    .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; }
+    .tab.active {
+      color: #1a73e8;
+      border-bottom: 3px solid #1a73e8;
+    }
 
     .email-row {
       display: flex;
@@ -125,19 +156,56 @@
       font-size: 14px;
     }
 
-    .email-row:hover { background: #f5f5f5; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .email-row.unread { font-weight: bold; background: white; }
-    .email-row input[type="checkbox"] { flex-shrink: 0; }
+    .email-row:hover {
+      background: #f5f5f5;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
 
-    .star { color: #ddd; font-size: 18px; flex-shrink: 0; }
-    .star.starred { color: #f4b400; }
+    .email-row.unread {
+      font-weight: bold;
+      background: white;
+    }
 
-    .sender { min-width: 160px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .email-row input[type="checkbox"] {
+      flex-shrink: 0;
+    }
 
-    .email-content { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .email-content .preview { color: #777; font-weight: normal; }
+    .star {
+      color: #ddd;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
 
-    .time { min-width: 60px; text-align: right; font-size: 13px; color: #777; }
+    .star.starred {
+      color: #f4b400;
+    }
+
+    .sender {
+      min-width: 160px;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .email-content {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .email-content .preview {
+      color: #777;
+      font-weight: normal;
+    }
+
+    .time {
+      min-width: 60px;
+      text-align: right;
+      font-size: 13px;
+      color: #777;
+    }
 
     .email-panel {
       width: 500px;
@@ -161,10 +229,28 @@
       margin-bottom: 15px;
     }
 
-    .email-header h2 { font-size: 20px; margin-bottom: 8px; }
-    .from { font-size: 14px; color: #444; margin-bottom: 4px; }
-    .date { font-size: 13px; color: #777; }
-    .email-body { font-size: 14px; line-height: 1.6; color: #333; margin-bottom: 20px; }
+    .email-header h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .from {
+      font-size: 14px;
+      color: #444;
+      margin-bottom: 4px;
+    }
+
+    .date {
+      font-size: 13px;
+      color: #777;
+    }
+
+    .email-body {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+      margin-bottom: 20px;
+    }
 
     .email-actions {
       display: flex;
@@ -183,7 +269,9 @@
       margin: 0;
     }
 
-    .action-btn:hover { background: #f0f0f0; }
+    .action-btn:hover {
+      background: #f0f0f0;
+    }
 
     .reply-box {
       border: 1px solid #ddd;
@@ -192,7 +280,11 @@
       margin-top: 10px;
     }
 
-    .reply-box p { font-size: 13px; color: #777; margin-bottom: 8px; }
+    .reply-box p {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 8px;
+    }
 
     .reply-box textarea {
       width: 100%;
@@ -222,7 +314,9 @@
       margin: 0;
     }
 
-    .send-reply-btn:hover { background: #1558b0; }
+    .send-reply-btn:hover {
+      background: #1558b0;
+    }
 
     /* COMPOSE MODAL */
     .compose-modal {
@@ -232,12 +326,14 @@
       width: 440px;
       background: white;
       border-radius: 10px 10px 0 0;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
       display: none;
       flex-direction: column;
     }
 
-    .compose-modal.open { display: flex; }
+    .compose-modal.open {
+      display: flex;
+    }
 
     .compose-header {
       background: #404040;
@@ -261,7 +357,10 @@
       margin: 0;
     }
 
-    .compose-fields { display: flex; flex-direction: column; }
+    .compose-fields {
+      display: flex;
+      flex-direction: column;
+    }
 
     .compose-fields input {
       border: none;
@@ -300,61 +399,82 @@
       margin: 0;
     }
 
-    .send-btn:hover { background: #1558b0; }
+    .send-btn:hover {
+      background: #1558b0;
+    }
 
     .attachments {
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 20px;
-}
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
 
-.attachments-title {
-  font-size: 13px;
-  color: #444;
-  margin-bottom: 10px;
-  font-weight: bold;
-}
+    .attachments-title {
+      font-size: 13px;
+      color: #444;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
 
-.attachment-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 8px;
-  background: #f8f9fa;
-  margin-bottom: 8px;
-}
+    .attachment-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 8px;
+      background: #f8f9fa;
+      margin-bottom: 8px;
+    }
 
-.attachment-icon { font-size: 20px; }
+    .attachment-icon {
+      font-size: 20px;
+    }
 
-.attachment-name {
-  flex: 1;
-  font-size: 13px;
-  font-weight: bold;
-}
+    .attachment-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: bold;
+    }
 
-.attachment-size {
-  font-size: 12px;
-  color: #777;
-}
+    .attachment-size {
+      font-size: 12px;
+      color: #777;
+    }
 
-.download-btn {
-  background: #1a73e8;
-  color: white;
-  border: none;
-  padding: 5px 12px;
-  border-radius: 15px;
-  font-size: 12px;
-  cursor: pointer;
-  width: auto;
-  margin: 0;
-}
+    .download-btn {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+    }
 
-.download-btn:hover { background: #1558b0; }
+    .download-btn:hover {
+      background: #1558b0;
+    }
 
+    .restore-btn {
+      background: none;
+      border: 1px solid #ddd;
+      padding: 4px 10px;
+      border-radius: 15px;
+      font-size: 12px;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+    }
+
+    .restore-btn:hover {
+      background: #f0f0f0;
+    }
   </style>
 </head>
+
 <body>
 
   <!-- HEADER -->
@@ -373,11 +493,11 @@
     <!-- SIDEBAR -->
     <div class="sidebar">
       <button class="compose-btn" onclick="openCompose()">Compose</button>
-      <div class="nav-item active">Inbox</div>
+      <div class="nav-item active" onclick="showInbox()">Inbox</div>
       <div class="nav-item">Starred</div>
       <div class="nav-item">Sent</div>
       <div class="nav-item">Drafts</div>
-      <div class="nav-item">Trash</div>
+      <div class="nav-item" onclick="showTrash()">Trash</div>
     </div>
 
     <!-- EMAIL LIST -->
@@ -451,38 +571,48 @@
 
   <script>
     const emails = [
-  {
-    sender: "Name1",
-    subject: "Subject1",
-    time: "10:42 AM",
-    body: "This is the full email body text.",
-    attachments: [
-      { name: "document.pdf", size: "2.4 MB" },
-      { name: "photo.png", size: "1.1 MB" }
-    ]
-  },
-  {
-    sender: "Name2",
-    subject: "Subject2",
-    time: "9:15 AM",
-    body: "This is another email body.",
-    attachments: []
-  },
-  {
-    sender: "Name3",
-    subject: "Subject3",
-    time: "Yesterday",
-    body: "This is the third email body.",
-    attachments: [
-      { name: "notes.txt", size: "12 KB" }
-    ]
-  }
-];
+      {
+        sender: "Name1",
+        subject: "Subject1",
+        time: "10:42 AM",
+        body: "This is the full email body text.",
+        attachments: [
+          { name: "document.pdf", size: "2.4 MB" },
+          { name: "photo.png", size: "1.1 MB" }
+        ]
+      },
+      {
+        sender: "Name2",
+        subject: "Subject2",
+        time: "9:15 AM",
+        body: "This is another email body.",
+        attachments: []
+      },
+      {
+        sender: "Name3",
+        subject: "Subject3",
+        time: "Yesterday",
+        body: "This is the third email body.",
+        attachments: [
+          { name: "notes.txt", size: "12 KB" }
+        ]
+      }
+    ];
+
+    const trashedEmails = [
+      {
+        sender: "Name4",
+        subject: "Old Subject",
+        time: "3 days ago",
+        body: "This email was deleted.",
+        attachments: []
+      }
+    ];
 
     let currentEmail = null;
 
     document.querySelectorAll('.email-row').forEach((row, index) => {
-      row.addEventListener('click', function() {
+      row.addEventListener('click', function () {
         currentEmail = emails[index];
         document.getElementById('emailPanel').innerHTML = `
           <div class="email-header">
@@ -552,7 +682,51 @@
     function closeCompose() {
       document.getElementById('composeModal').classList.remove('open');
     }
+
+
+    function showInbox() {
+      document.querySelector('.inbox-tabs').style.display = 'flex';
+      document.querySelectorAll('.email-row').forEach(row => row.style.display = 'flex');
+      document.querySelectorAll('.trash-row').forEach(row => row.remove());
+      document.getElementById('emailPanel').innerHTML = '<div class="panel-placeholder"><p>Select an email to read</p></div>';
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+    }
+
+    function showTrash() {
+      document.querySelector('.inbox-tabs').style.display = 'none';
+      document.querySelectorAll('.email-row').forEach(row => row.style.display = 'none');
+      document.getElementById('emailPanel').innerHTML = '<div class="panel-placeholder"><p>Select an email to read</p></div>';
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      const emailList = document.querySelector('.email-list');
+      trashedEmails.forEach((email, index) => {
+        const row = document.createElement('div');
+        row.className = 'email-row trash-row';
+        row.innerHTML = `
+      <input type="checkbox">
+      <span class="sender">${email.sender}</span>
+      <div class="email-content">
+        <span class="subject">${email.subject} </span>
+        <span class="preview">— ${email.body}</span>
+      </div>
+      <span class="time">${email.time}</span>
+      <button class="restore-btn" onclick="restoreEmail(${index})">Restore</button>
+    `;
+        emailList.appendChild(row);
+      });
+    }
+
+    function restoreEmail(index) {
+      const email = trashedEmails.splice(index, 1)[0];
+      emails.push(email);
+      showTrash();
+    }
+
+
   </script>
 
 </body>
+
 </html>
