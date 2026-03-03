@@ -317,7 +317,6 @@
         background: #1558b0;
       }
 
-      /* COMPOSE MODAL */
       .compose-modal {
         position: fixed;
         bottom: 0;
@@ -513,19 +512,11 @@
         <span>🔍</span>
         <input type="text" placeholder="Search mail" />
       </div>
-      <div
-        class="account-icon"
-        title="placeholder@email.com"
-        onclick="toggleMenu()"
-      >
-        P
-      </div>
+      <div class="account-icon" title="placeholder@email.com" onclick="toggleMenu()">P</div>
       <div class="account-menu" id="accountMenu" style="display: none">
-        <div class="account-menu-item"> placeholder@email.com</div>
+        <div class="account-menu-item">placeholder@email.com</div>
         <div class="account-menu-item" onclick="openProfile()">👤 Profile</div>
-        <div class="account-menu-item" onclick="openSubEmail()">
-          Create Sub-Email
-        </div>
+        <div class="account-menu-item" onclick="openSubEmail()">Create Sub-Email</div>
         <hr style="border: none; border-top: 1px solid #ddd" />
         <div class="account-menu-item" onclick="logout()">🚪 Sign Out</div>
       </div>
@@ -539,7 +530,7 @@
         <div class="nav-item active" onclick="showInbox()">Inbox</div>
         <div class="nav-item">Starred</div>
         <div class="nav-item">Sent</div>
-        <div class="nav-item">Drafts</div>
+        <div class="nav-item" onclick="showDrafts()">Drafts</div>
         <div class="nav-item" onclick="showTrash()">Trash</div>
       </div>
 
@@ -602,11 +593,9 @@
       <div class="compose-fields">
         <input type="text" id="composeTo" placeholder="To" />
         <input type="text" id="composeCC" placeholder="CC" />
+        <input type="text" id="composeBCC" placeholder="BCC" />
         <input type="text" id="composeSubject" placeholder="Subject" />
-        <textarea
-          id="composeBody"
-          placeholder="Write your message..."
-        ></textarea>
+        <textarea id="composeBody" placeholder="Write your message..."></textarea>
       </div>
       <div class="compose-footer">
         <button class="send-btn">Send ➤</button>
@@ -673,6 +662,8 @@
         },
       ];
 
+      const drafts = [];
+
       let currentEmail = null;
       let currentIndex = null;
 
@@ -691,32 +682,24 @@
             <button class="action-btn" onclick="reply()">↩ Reply</button>
             <button class="action-btn" onclick="replyAll()">↩ Reply All</button>
             <button class="action-btn" onclick="forwardEmail()">→ Forward</button>
-            <button class="action-btn" onclick="deleteEmail()">🗑 Delete</button>
+            <button class="action-btn delete-btn" onclick="deleteEmail()">🗑 Delete</button>
           </div>
           <div class="email-body">
             <p>${currentEmail.body}</p>
           </div>
-          ${
-            currentEmail.attachments.length > 0
-              ? `
+          ${currentEmail.attachments.length > 0 ? `
             <div class="attachments">
               <p class="attachments-title">📎 Attachments (${currentEmail.attachments.length})</p>
-              ${currentEmail.attachments
-                .map(
-                  (a) => `
+              ${currentEmail.attachments.map(a => `
                 <div class="attachment-item">
                   <span class="attachment-icon">📄</span>
                   <span class="attachment-name">${a.name}</span>
                   <span class="attachment-size">${a.size}</span>
                   <button class="download-btn">Download</button>
                 </div>
-              `,
-                )
-                .join("")}
+              `).join("")}
             </div>
-          `
-              : ""
-          }
+          ` : ""}
           <div class="reply-box" id="replyBox" style="display:none;">
             <p id="replyLabel">Reply to ${currentEmail.sender}</p>
             <textarea id="replyText" placeholder="Write your reply..."></textarea>
@@ -730,8 +713,7 @@
 
       function reply() {
         document.getElementById("replyBox").style.display = "block";
-        document.getElementById("replyLabel").textContent =
-          `Reply to ${currentEmail.sender}`;
+        document.getElementById("replyLabel").textContent = `Reply to ${currentEmail.sender}`;
         document.getElementById("replyText").value = "";
       }
 
@@ -744,10 +726,8 @@
       function forwardEmail() {
         openCompose();
         document.getElementById("composeTitle").textContent = "Forward";
-        document.getElementById("composeSubject").value =
-          `Fwd: ${currentEmail.subject}`;
-        document.getElementById("composeBody").value =
-          `\n\n---------- Forwarded message ----------\nFrom: ${currentEmail.sender}\n\n${currentEmail.body}`;
+        document.getElementById("composeSubject").value = `Fwd: ${currentEmail.subject}`;
+        document.getElementById("composeBody").value = `\n\n---------- Forwarded message ----------\nFrom: ${currentEmail.sender}\n\n${currentEmail.body}`;
       }
 
       function deleteEmail() {
@@ -762,49 +742,88 @@
         document.getElementById("composeModal").classList.add("open");
         document.getElementById("composeTitle").textContent = "New Message";
         document.getElementById("composeTo").value = "";
+        document.getElementById("composeCC").value = "";
+        document.getElementById("composeBCC").value = "";
         document.getElementById("composeSubject").value = "";
         document.getElementById("composeBody").value = "";
       }
 
       function closeCompose() {
-  const body = document.getElementById("composeBody").value;
-  const subject = document.getElementById("composeSubject").value;
-  const to = document.getElementById("composeTo").value;
+        const body = document.getElementById("composeBody").value;
+        const subject = document.getElementById("composeSubject").value;
+        const to = document.getElementById("composeTo").value;
 
-  if (body || subject || to) {
-    const save = confirm("Save as draft?");
-    if (save) {
-      alert("Draft saved!");
-    }
-  }
-
-  document.getElementById("composeModal").classList.remove("open");
-}
+        if (body || subject || to) {
+          const save = confirm("Save as draft?");
+          if (save) {
+            drafts.push({ to, subject, body });
+            alert("Draft saved!");
+          }
+        }
+        document.getElementById("composeModal").classList.remove("open");
+      }
 
       function showInbox() {
         document.querySelector(".inbox-tabs").style.display = "flex";
-        document
-          .querySelectorAll(".email-row")
-          .forEach((row) => (row.style.display = "flex"));
+        document.querySelectorAll(".email-row").forEach((row) => (row.style.display = "flex"));
         document.querySelectorAll(".trash-row").forEach((row) => row.remove());
         document.getElementById("emailPanel").innerHTML =
           '<div class="panel-placeholder"><p>Select an email to read</p></div>';
-        document
-          .querySelectorAll(".nav-item")
-          .forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll(".nav-item").forEach((item) => item.classList.remove("active"));
         event.currentTarget.classList.add("active");
+      }
+
+      function showDrafts() {
+        document.querySelector(".inbox-tabs").style.display = "none";
+        document.querySelectorAll(".email-row").forEach((row) => (row.style.display = "none"));
+        document.querySelectorAll(".trash-row").forEach((row) => row.remove());
+        document.getElementById("emailPanel").innerHTML =
+          '<div class="panel-placeholder"><p>Select a draft to edit</p></div>';
+        document.querySelectorAll(".nav-item").forEach((item) => item.classList.remove("active"));
+        event.currentTarget.classList.add("active");
+
+        const emailList = document.querySelector(".email-list");
+
+        if (drafts.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "panel-placeholder";
+          empty.style.marginTop = "20px";
+          empty.innerHTML = "<p>No drafts saved</p>";
+          emailList.appendChild(empty);
+          return;
+        }
+
+        drafts.forEach((draft, index) => {
+          const row = document.createElement("div");
+          row.className = "email-row trash-row";
+          row.innerHTML = `
+            <input type="checkbox">
+            <span class="sender">Draft</span>
+            <div class="email-content">
+              <span class="subject">${draft.subject || "(no subject)"} </span>
+              <span class="preview">— To: ${draft.to || "(no recipient)"}</span>
+            </div>
+            <button class="restore-btn" onclick="openDraft(${index})">Edit</button>
+          `;
+          emailList.appendChild(row);
+        });
+      }
+
+      function openDraft(index) {
+        const draft = drafts[index];
+        openCompose();
+        document.getElementById("composeTo").value = draft.to;
+        document.getElementById("composeSubject").value = draft.subject;
+        document.getElementById("composeBody").value = draft.body;
+        drafts.splice(index, 1);
       }
 
       function showTrash() {
         document.querySelector(".inbox-tabs").style.display = "none";
-        document
-          .querySelectorAll(".email-row")
-          .forEach((row) => (row.style.display = "none"));
+        document.querySelectorAll(".email-row").forEach((row) => (row.style.display = "none"));
         document.getElementById("emailPanel").innerHTML =
           '<div class="panel-placeholder"><p>Select an email to read</p></div>';
-        document
-          .querySelectorAll(".nav-item")
-          .forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll(".nav-item").forEach((item) => item.classList.remove("active"));
         event.currentTarget.classList.add("active");
 
         const emailList = document.querySelector(".email-list");
@@ -812,15 +831,15 @@
           const row = document.createElement("div");
           row.className = "email-row trash-row";
           row.innerHTML = `
-      <input type="checkbox">
-      <span class="sender">${email.sender}</span>
-      <div class="email-content">
-        <span class="subject">${email.subject} </span>
-        <span class="preview">— ${email.body}</span>
-      </div>
-      <span class="time">${email.time}</span>
-      <button class="restore-btn" onclick="restoreEmail(${index})">Restore</button>
-    `;
+            <input type="checkbox">
+            <span class="sender">${email.sender}</span>
+            <div class="email-content">
+              <span class="subject">${email.subject} </span>
+              <span class="preview">— ${email.body}</span>
+            </div>
+            <span class="time">${email.time}</span>
+            <button class="restore-btn" onclick="restoreEmail(${index})">Restore</button>
+          `;
           emailList.appendChild(row);
         });
       }
