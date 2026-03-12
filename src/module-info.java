@@ -4,5 +4,5 @@
 /**
  * 
  */
-module CS2_Java_Project {
+module javabackend {
 }
