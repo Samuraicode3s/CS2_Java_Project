@@ -85,6 +85,11 @@ body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100v
   </div>
   <div class="compose-footer">
     <button class="send-btn" onclick="sendEmail()">Send</button>
+    <label style="cursor:pointer;padding:10px;color:#1a73e8;font-size:13px;">
+      📎 Attach
+      <input type="file" id="attachInput" multiple style="display:none" onchange="handleAttach(event)">
+    </label>
+    <span id="attachLabel" style="font-size:12px;color:#777;"></span>
   </div>
 </div>
 
@@ -125,15 +130,90 @@ function getCleanBody(mail) {
 }
 
 // ── load inbox from server ──
+// ── attachment storage: keyed by email id ──
+const attachmentStore = {};
+let pendingAttachments = []; // files waiting to be sent
+
+function handleAttach(e) {
+  const files = Array.from(e.target.files);
+  pendingAttachments = files;
+  document.getElementById("attachLabel").textContent =
+    files.length === 1 ? files[0].name : files.length + " files attached";
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function renderAttachments(attachments) {
+  if (!attachments || attachments.length === 0) return '';
+  let html = '<div style="margin-top:15px;border-top:1px solid #eee;padding-top:10px;"><b>Attachments</b>';
+  attachments.forEach((a, i) => {
+    html += `<div style="margin:8px 0;font-size:13px;">
+      📎 ${a.name} (${formatSize(a.size)})
+      <button onclick="previewAttachment(${i})" style="margin-left:8px;font-size:12px;cursor:pointer;">Preview</button>
+      <button onclick="downloadAttachment(${i})" style="margin-left:4px;font-size:12px;cursor:pointer;">Download</button>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function previewAttachment(idx) {
+  const a = currentEmail._attachments[idx];
+  if (!a) return;
+  const type = a.type || '';
+  const win = window.open('', '_blank');
+  if (type.startsWith('image/')) {
+    win.document.write(`<img src="${a.data}" style="max-width:100%">`);
+  } else if (type === 'application/pdf') {
+    win.document.write(`<iframe src="${a.data}" width="100%" height="100%" style="border:none;position:fixed;top:0;left:0;"></iframe>`);
+  } else if (type.startsWith('text/')) {
+    fetch(a.data).then(r => r.text()).then(txt => {
+      win.document.write(`<pre style="font-family:monospace;padding:20px">${txt}</pre>`);
+    });
+  } else {
+    win.document.write(`<p style="font-family:Arial;padding:20px">Preview not available for this file type.<br><br>
+      <a href="${a.data}" download="${a.name}">Click here to download</a></p>`);
+  }
+}
+
+function downloadAttachment(idx) {
+  const a = currentEmail._attachments[idx];
+  if (!a) return;
+  const link = document.createElement('a');
+  link.href = a.data;
+  link.download = a.name;
+  link.click();
+}
+const readIds = new Set();
+
 async function loadInbox() {
   const res = await fetch(SERVER + "/inbox?email=" + encodeURIComponent(userEmail));
-  inbox = await res.json();
+  const fresh = await res.json();
+  // preserve read state using email id
+  fresh.forEach(m => { if (readIds.has(m.id)) m.read = true; });
+  inbox = fresh;
   if (view === 'inbox') renderEmails();
 }
 
 async function loadSent() {
   const res = await fetch(SERVER + "/sent?email=" + encodeURIComponent(userEmail));
-  sent = await res.json();
+  const fresh = await res.json();
+  fresh.forEach(m => { if (readIds.has(m.id)) m.read = true; });
+  sent = fresh;
   if (view === 'sent') renderEmails();
 }
 
@@ -178,6 +258,7 @@ function openEmail(index) {
   const mail = getSource()[index];
   currentEmail = mail;
   mail.read = true;
+  if (mail.id) readIds.add(mail.id);
   renderEmails();
 
   // if draft, reopen in compose but keep it in drafts until sent
@@ -192,6 +273,9 @@ function openEmail(index) {
   }
 
   const formattedBody = cleanBody(mail.body || '').replace(/\n/g, '<br>');
+  const attachHTML = renderAttachments(mail.attachments || mail._attachments);
+  // store attachments on current email for preview/download
+  if (mail.attachments) mail._attachments = mail.attachments;
   document.getElementById("emailPanel").style.display = 'block';
   document.getElementById("emailPanel").innerHTML = `
     <h2>${mail.subject}</h2>
@@ -200,6 +284,7 @@ function openEmail(index) {
     <p><b>Time:</b> ${mail.time}</p>
     <br>
     <p>${formattedBody}</p>
+    ${attachHTML}
     <br>
     <button onclick="reply()">Reply</button>
     <button onclick="replyAll()">Reply All</button>
@@ -209,11 +294,22 @@ function openEmail(index) {
   `;
 }
 
-function deleteEmail() {
+async function deleteEmail() {
   if (!currentEmail) return;
   const src = getSource();
   const idx = src.indexOf(currentEmail);
   if (idx === -1) return;
+
+  // permanently delete from server if it has an id and is in trash
+  if (currentEmail.id && view !== 'drafts') {
+    const deleteFrom = view === 'trash' ? 'trash' : view;
+    // always remove from inbox/sent on server when moving to trash or deleting
+    await fetch(SERVER + "/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: userEmail, id: currentEmail.id, folder: deleteFrom === 'trash' ? 'inbox' : deleteFrom })
+    });
+  }
 
   if (view === 'trash' || view === 'drafts') {
     src.splice(idx, 1);
@@ -305,15 +401,23 @@ async function sendEmail() {
 
   if (!to) { alert("Recipient required"); return; }
 
-  const res  = await fetch(SERVER + "/send", {
+  console.log("Pending attachments:", pendingAttachments.length);
+  const attachments = [];
+  for (const file of pendingAttachments) {
+    const data = await fileToBase64(file);
+    console.log("Attachment:", file.name, "data length:", data.length);
+    attachments.push({ name: file.name, size: file.size, type: file.type, data });
+  }
+  console.log("Sending with attachments:", attachments.length);
+
+  const res = await fetch(SERVER + "/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sender: userEmail, recipient: to, subject, body })
+    body: JSON.stringify({ sender: userEmail, recipient: to, subject, body, attachments })
   });
   const data = await res.json();
 
   if (data.success) {
-    // remove draft if we were editing one
     if (window.editingDraftIndex !== undefined) {
       drafts.splice(window.editingDraftIndex, 1);
       window.editingDraftIndex = undefined;
@@ -321,6 +425,8 @@ async function sendEmail() {
     alert("Email sent!");
     document.getElementById("composeModal").classList.remove("open");
     clearCompose();
+    pendingAttachments = [];
+    document.getElementById("attachLabel").textContent = '';
     loadSent();
   } else {
     alert("Failed to send: " + (data.error || "unknown error"));

@@ -14,22 +14,24 @@ public class HttpServer {
         com.sun.net.httpserver.HttpServer server =
             com.sun.net.httpserver.HttpServer.create(new InetSocketAddress(8080), 0);
 
-        server.createContext("/signup",  new SignupHandler());
-        server.createContext("/login",   new LoginHandler());
-        server.createContext("/send",    new SendHandler());
-        server.createContext("/inbox",   new InboxHandler());
-        server.createContext("/sent",    new SentHandler());
+        server.createContext("/signup",    new SignupHandler());
+        server.createContext("/login",     new LoginHandler());
+        server.createContext("/send",      new SendHandler());
+        server.createContext("/inbox",     new InboxHandler());
+        server.createContext("/sent",      new SentHandler());
+        server.createContext("/delete",    new DeleteHandler());
+        server.createContext("/index.html",new StaticHandler());
+        server.createContext("/login.html",new StaticHandler());
+        server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(4));
 
         server.start();
         System.out.println("Server running at http://localhost:8080");
     }
 
-    // ── helper: read the full request body as a string ──
     static String readBody(HttpExchange ex) throws IOException {
         return new String(ex.getRequestBody().readAllBytes());
     }
 
-    // ── helper: send a JSON response back to the browser ──
     static void respond(HttpExchange ex, int code, String json) throws IOException {
         ex.getResponseHeaders().add("Content-Type", "application/json");
         ex.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
@@ -41,7 +43,6 @@ public class HttpServer {
         ex.getResponseBody().close();
     }
 
-    // ── helper: handle browser preflight OPTIONS requests ──
     static boolean handleOptions(HttpExchange ex) throws IOException {
         if (ex.getRequestMethod().equalsIgnoreCase("OPTIONS")) {
             respond(ex, 204, "");
@@ -50,37 +51,29 @@ public class HttpServer {
         return false;
     }
 
-    // ─────────────────────────────────────────
-    // POST /signup
-    // body: {"name":"John","email":"john@mail.com","password":"1234"}
-    // ─────────────────────────────────────────
+    // ── /signup ──
     static class SignupHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {
             if (handleOptions(ex)) return;
 
-            String body = readBody(ex);
+            String body     = readBody(ex);
             String name     = FileStorage.getValue(body, "name");
             String email    = FileStorage.getValue(body, "email");
             String password = FileStorage.getValue(body, "password");
 
             if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
-                respond(ex, 400, "{\"error\":\"Missing fields\"}");
-                return;
+                respond(ex, 400, "{\"error\":\"Missing fields\"}"); return;
             }
-
             if (FileStorage.userExists(email)) {
-                respond(ex, 400, "{\"error\":\"Email already registered\"}");
-                return;
+                respond(ex, 400, "{\"error\":\"Email already registered\"}"); return;
             }
 
-            // give each user a simple incremental ID
             String id = String.valueOf(System.currentTimeMillis());
             String userJson = "{" +
-                "\"id\":" + FileStorage.jsonStr(id) + "," +
-                "\"name\":" + FileStorage.jsonStr(name) + "," +
-                "\"email\":" + FileStorage.jsonStr(email) + "," +
-                "\"password\":" + FileStorage.jsonStr(password) +
-            "}";
+                "\"id\":"       + FileStorage.jsonStr(id)       + "," +
+                "\"name\":"     + FileStorage.jsonStr(name)     + "," +
+                "\"email\":"    + FileStorage.jsonStr(email)    + "," +
+                "\"password\":" + FileStorage.jsonStr(password) + "}";
 
             FileStorage.appendUser(userJson);
             System.out.println("New user registered: " + email);
@@ -88,10 +81,7 @@ public class HttpServer {
         }
     }
 
-    // ─────────────────────────────────────────
-    // POST /login
-    // body: {"email":"john@mail.com","password":"1234"}
-    // ─────────────────────────────────────────
+    // ── /login ──
     static class LoginHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {
             if (handleOptions(ex)) return;
@@ -99,18 +89,13 @@ public class HttpServer {
             String body     = readBody(ex);
             String email    = FileStorage.getValue(body, "email");
             String password = FileStorage.getValue(body, "password");
-
             String userJson = FileStorage.findUser(email);
 
             if (userJson.isEmpty()) {
-                respond(ex, 401, "{\"error\":\"User not found\"}");
-                return;
+                respond(ex, 401, "{\"error\":\"User not found\"}"); return;
             }
-
-            String storedPassword = FileStorage.getValue(userJson, "password");
-            if (!storedPassword.equals(password)) {
-                respond(ex, 401, "{\"error\":\"Wrong password\"}");
-                return;
+            if (!FileStorage.getValue(userJson, "password").equals(password)) {
+                respond(ex, 401, "{\"error\":\"Wrong password\"}"); return;
             }
 
             String name = FileStorage.getValue(userJson, "name");
@@ -120,36 +105,47 @@ public class HttpServer {
         }
     }
 
-    // ─────────────────────────────────────────
-    // POST /send
-    // body: {"sender":"john@mail.com","recipient":"james@mail.com",
-    //        "subject":"Hello","body":"Hi there"}
-    // ─────────────────────────────────────────
+    // ── /send ──
     static class SendHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {
             if (handleOptions(ex)) return;
 
             String body      = readBody(ex);
+            System.out.println("=== SEND DEBUG ===");
+            System.out.println("Body length: " + body.length());
+            System.out.println("Has attachments key: " + body.contains("\"attachments\""));
             String sender    = FileStorage.getValue(body, "sender");
             String recipient = FileStorage.getValue(body, "recipient");
             String subject   = FileStorage.getValue(body, "subject");
             String emailBody = FileStorage.getValue(body, "body");
 
+            // extract raw attachments array
+            String attachments = "[]";
+            int attIdx = body.indexOf("\"attachments\":");
+            if (attIdx != -1) {
+                int arrStart = body.indexOf("[", attIdx);
+                if (arrStart != -1) {
+                    int depth = 0, arrEnd = arrStart;
+                    for (int i = arrStart; i < body.length(); i++) {
+                        if (body.charAt(i) == '[') depth++;
+                        else if (body.charAt(i) == ']') { depth--; if (depth == 0) { arrEnd = i; break; } }
+                    }
+                    attachments = body.substring(arrStart, arrEnd + 1);
+                }
+            }
+
             if (recipient.isEmpty()) {
-                respond(ex, 400, "{\"error\":\"Recipient required\"}");
-                return;
+                respond(ex, 400, "{\"error\":\"Recipient required\"}"); return;
             }
 
             String id   = String.valueOf(System.currentTimeMillis());
             String time = new Date().toString();
 
-            // save to recipient's inbox
-            String inboxFile = "inbox_" + recipient.replace("@", "_").replace(".", "_") + ".json";
-            String emailJson = FileStorage.buildEmailJson(id, sender, recipient, subject, emailBody, time);
+            String inboxFile = "inbox_" + recipient.replace("@","_").replace(".","_") + ".json";
+            String emailJson = FileStorage.buildEmailJson(id, sender, recipient, subject, emailBody, time, attachments);
             FileStorage.appendEmail(inboxFile, emailJson);
 
-            // save to sender's sent folder
-            String sentFile = "sent_" + sender.replace("@", "_").replace(".", "_") + ".json";
+            String sentFile = "sent_" + sender.replace("@","_").replace(".","_") + ".json";
             FileStorage.appendEmail(sentFile, emailJson);
 
             System.out.println("Email saved: " + sender + " → " + recipient);
@@ -157,56 +153,98 @@ public class HttpServer {
         }
     }
 
-    // ─────────────────────────────────────────
-    // GET /inbox?email=john@mail.com
-    // returns the full inbox JSON array
-    // ─────────────────────────────────────────
+    // ── /inbox ──
     static class InboxHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {
             if (handleOptions(ex)) return;
 
-            String query = ex.getRequestURI().getQuery(); // "email=john@mail.com"
-            String email = "";
-            if (query != null && query.startsWith("email=")) {
-                email = query.substring(6);
-            }
+            String query = ex.getRequestURI().getQuery();
+            String email = (query != null && query.startsWith("email=")) ? query.substring(6) : "";
 
-            if (email.isEmpty()) {
-                respond(ex, 400, "{\"error\":\"Email required\"}");
-                return;
-            }
+            if (email.isEmpty()) { respond(ex, 400, "{\"error\":\"Email required\"}"); return; }
 
-            String inboxFile = "inbox_" + email.replace("@", "_").replace(".", "_") + ".json";
-            String content   = FileStorage.readFile(inboxFile);
-
-            if (content.isEmpty()) content = "[]";
-            respond(ex, 200, content);
+            String content = FileStorage.readFile("inbox_" + email.replace("@","_").replace(".","_") + ".json");
+            respond(ex, 200, content.isEmpty() ? "[]" : content);
         }
     }
 
-    // ─────────────────────────────────────────
-    // GET /sent?email=john@mail.com
-    // ─────────────────────────────────────────
+    // ── /sent ──
     static class SentHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {
             if (handleOptions(ex)) return;
 
             String query = ex.getRequestURI().getQuery();
-            String email = "";
-            if (query != null && query.startsWith("email=")) {
-                email = query.substring(6);
+            String email = (query != null && query.startsWith("email=")) ? query.substring(6) : "";
+
+            if (email.isEmpty()) { respond(ex, 400, "{\"error\":\"Email required\"}"); return; }
+
+            String content = FileStorage.readFile("sent_" + email.replace("@","_").replace(".","_") + ".json");
+            respond(ex, 200, content.isEmpty() ? "[]" : content);
+        }
+    }
+
+    // ── /delete ──
+    static class DeleteHandler implements HttpHandler {
+        public void handle(HttpExchange ex) throws IOException {
+            if (handleOptions(ex)) return;
+
+            String body   = readBody(ex);
+            String email  = FileStorage.getValue(body, "email");
+            String id     = FileStorage.getValue(body, "id");
+            String folder = FileStorage.getValue(body, "folder");
+
+            if (email.isEmpty() || id.isEmpty() || folder.isEmpty()) {
+                respond(ex, 400, "{\"error\":\"Missing fields\"}"); return;
             }
 
-            if (email.isEmpty()) {
-                respond(ex, 400, "{\"error\":\"Email required\"}");
-                return;
+            String filename = folder + "_" + email.replace("@","_").replace(".","_") + ".json";
+            String content  = FileStorage.readFile(filename).trim();
+
+            if (!content.isEmpty() && !content.equals("[]")) {
+                FileStorage.writeFile(filename, removeById(content, id));
             }
 
-            String sentFile = "sent_" + email.replace("@", "_").replace(".", "_") + ".json";
-            String content  = FileStorage.readFile(sentFile);
+            System.out.println("Email deleted from " + folder + ": " + id);
+            respond(ex, 200, "{\"success\":true}");
+        }
 
-            if (content.isEmpty()) content = "[]";
-            respond(ex, 200, content);
+        private String removeById(String jsonArray, String id) {
+            String[] parts = jsonArray.replace("[","").replace("]","").split("\\},\\{");
+            StringBuilder sb = new StringBuilder("[");
+            boolean first = true;
+            for (String part : parts) {
+                String obj = part.trim();
+                if (!obj.startsWith("{")) obj = "{" + obj;
+                if (!obj.endsWith("}"))   obj = obj + "}";
+                if (FileStorage.getValue(obj, "id").equals(id)) continue;
+                if (!first) sb.append(",");
+                sb.append(obj);
+                first = false;
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+    }
+
+    // ── serves index.html and login.html ──
+    static class StaticHandler implements HttpHandler {
+        public void handle(HttpExchange ex) throws IOException {
+            if (!ex.getRequestMethod().equalsIgnoreCase("GET")) {
+                respond(ex, 405, "{\"error\":\"Method not allowed\"}"); return;
+            }
+            String path = ex.getRequestURI().getPath();
+            if (path.equals("/") || path.equals("/index.html")) path = "/index.html";
+            else if (path.equals("/login.html")) path = "/login.html";
+            else { respond(ex, 404, "{\"error\":\"Not found\"}"); return; }
+
+            File f = new File("." + path);
+            if (!f.exists()) { respond(ex, 404, "{\"error\":\"File not found\"}"); return; }
+
+            byte[] bytes = java.nio.file.Files.readAllBytes(f.toPath());
+            ex.getResponseHeaders().add("Content-Type", "text/html; charset=utf-8");
+            ex.sendResponseHeaders(200, bytes.length);
+            ex.getResponseBody().write(bytes);
+            ex.getResponseBody().close();
         }
     }
 }

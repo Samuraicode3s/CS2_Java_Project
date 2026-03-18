@@ -73,7 +73,7 @@ public class FileStorage {
 
     // builds a simple email JSON object from parts
     public static String buildEmailJson(String id, String sender, String recipient,
-                                         String subject, String body, String time) {
+                                         String subject, String body, String time, String attachments) {
         return "{" +
             "\"id\":" + jsonStr(id) + "," +
             "\"sender\":" + jsonStr(sender) + "," +
