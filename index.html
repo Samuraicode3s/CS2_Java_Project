@@ -2,470 +2,351 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Email Client</title>
-
+<title>SmallMail</title>
 <style>
-
 *{margin:0;padding:0;box-sizing:border-box;}
-
-body{
-font-family:Arial, sans-serif;
-display:flex;
-flex-direction:column;
-height:100vh;
-}
-
-/* HEADER */
-
-.header{
-display:flex;
-align-items:center;
-padding:10px 20px;
-border-bottom:1px solid #ddd;
-gap:20px;
-background:white;
-}
-
+body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100vh;}
+.header{display:flex;align-items:center;padding:10px 20px;border-bottom:1px solid #ddd;gap:20px;background:white;}
 .header h1{font-size:22px;color:#5f6368;}
 .header h1 span{color:#ea4335;}
-
-.search-bar{
-flex:1;
-display:flex;
-align-items:center;
-background:#eaf1fb;
-border-radius:25px;
-padding:10px 20px;
-gap:10px;
-max-width:700px;
-}
-
-.search-bar input{
-border:none;
-background:transparent;
-outline:none;
-font-size:16px;
-width:100%;
-}
-
-.account-icon{
-width:35px;height:35px;border-radius:50%;
-background:#1a73e8;color:white;
-display:flex;align-items:center;justify-content:center;
-font-weight:bold;cursor:pointer;margin-left:auto;
-}
-
-.account-menu{
-position:absolute;
-right:20px;top:60px;
-background:white;
-border:1px solid #ddd;
-border-radius:8px;
-display:none;
-}
-
-.account-menu div{
-padding:10px 16px;
-cursor:pointer;
-}
-
+.search-bar{flex:1;display:flex;align-items:center;background:#eaf1fb;border-radius:25px;padding:10px 20px;gap:10px;max-width:700px;}
+.search-bar input{border:none;background:transparent;outline:none;font-size:16px;width:100%;}
+.account-icon{width:35px;height:35px;border-radius:50%;background:#1a73e8;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;margin-left:auto;}
+.account-menu{position:absolute;right:20px;top:60px;background:white;border:1px solid #ddd;border-radius:8px;display:none;z-index:999;}
+.account-menu div{padding:10px 16px;cursor:pointer;}
 .account-menu div:hover{background:#eee;}
-
-/* BODY */
-
 .body{display:flex;flex:1;overflow:hidden;}
-
-.sidebar{
-width:180px;
-border-right:1px solid #ddd;
-padding:10px 0;
-}
-
-.compose-btn{
-margin:5px 10px 15px;
-padding:15px;
-background:#c2e7ff;
-border:none;
-border-radius:20px;
-cursor:pointer;
-width:calc(100% - 20px);
-}
-
-.nav-item{
-padding:8px 20px;
-cursor:pointer;
-}
-
+.sidebar{width:180px;border-right:1px solid #ddd;padding:10px 0;}
+.compose-btn{margin:5px 10px 15px;padding:15px;background:#c2e7ff;border:none;border-radius:20px;cursor:pointer;width:calc(100% - 20px);}
+.refresh-btn{margin:0 10px 10px;padding:8px;background:#f1f3f4;border:none;border-radius:20px;cursor:pointer;width:calc(100% - 20px);}
+.nav-item{padding:8px 20px;cursor:pointer;}
 .nav-item.active{font-weight:bold;}
 .nav-item:hover{background:#eee;}
-
+.user-label{font-size:12px;color:#777;padding:0 10px 10px;word-break:break-all;}
 .email-list{flex:1;overflow:auto;}
-
-.email-row{
-display:flex;
-align-items:center;
-padding:8px 12px;
-border-bottom:1px solid #eee;
-cursor:pointer;
-gap:10px;
-}
-
+.email-row{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;gap:10px;}
 .email-row.unread{font-weight:bold;}
 .email-row:hover{background:#f5f5f5;}
-
 .star{cursor:pointer;font-size:18px;color:#bbb;}
 .star.starred{color:#f4b400;}
-
 .sender{min-width:150px;}
 .email-content{flex:1;}
 .preview{color:#777;font-weight:normal;}
-
 .time{font-size:12px;color:#777;}
-
-.email-panel{
-width:500px;
-border-left:1px solid #ddd;
-padding:20px;
-overflow:auto;
-}
-
-.panel-placeholder{text-align:center;color:#aaa;margin-top:100px;}
-
-.attachments{margin-top:15px;border-top:1px solid #eee;padding-top:10px;}
-.attachment-item{font-size:13px;margin-bottom:6px;}
-
-.compose-modal{
-position:fixed;
-bottom:0;
-right:20px;
-width:420px;
-background:white;
-border-radius:10px 10px 0 0;
-box-shadow:0 4px 20px rgba(0,0,0,0.2);
-display:none;
-flex-direction:column;
-}
-
+.email-panel{width:500px;border-left:1px solid #ddd;padding:20px;overflow:auto;display:none;}
+.compose-modal{position:fixed;bottom:0;right:20px;width:420px;background:white;border-radius:10px 10px 0 0;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:none;flex-direction:column;}
 .compose-modal.open{display:flex;}
-
-.compose-header{
-background:#404040;
-color:white;
-padding:10px;
-display:flex;
-justify-content:space-between;
-}
-
-.compose-fields input,
-.compose-fields textarea{
-border:none;
-border-bottom:1px solid #ddd;
-padding:10px;
-font-size:14px;
-outline:none;
-}
-
-.compose-fields textarea{height:200px;resize:none;}
-
+.compose-header{background:#404040;color:white;padding:10px;display:flex;justify-content:space-between;border-radius:10px 10px 0 0;}
+.compose-fields input,.compose-fields textarea{border:none;border-bottom:1px solid #ddd;padding:10px;font-size:14px;outline:none;width:100%;}
+.compose-fields textarea{height:200px;resize:none;font-family:monospace;font-size:13px;}
 .compose-footer{padding:10px;}
-
-.send-btn{
-background:#1a73e8;
-color:white;
-border:none;
-padding:10px 20px;
-border-radius:20px;
-cursor:pointer;
-}
-
+.send-btn{background:#1a73e8;color:white;border:none;padding:10px 20px;border-radius:20px;cursor:pointer;}
 </style>
 </head>
-
 <body>
 
 <div class="header">
-
-<h1>M<span>.</span></h1>
-
-<div class="search-bar">
-🔍
-<input id="searchInput" placeholder="Search mail" oninput="renderEmails()">
-</div>
-
-<div class="account-icon" onclick="toggleMenu()">P</div>
-
-<div class="account-menu" id="accountMenu">
-<div onclick="logout()">Sign Out</div>
-</div>
-
+  <h1>Small<span>Mail</span></h1>
+  <div class="search-bar">
+    🔍
+    <input id="searchInput" placeholder="Search mail" oninput="renderEmails()">
+  </div>
+  <div class="account-icon" onclick="toggleMenu()" id="accountIcon">?</div>
+  <div class="account-menu" id="accountMenu">
+    <div onclick="logout()">Sign Out</div>
+  </div>
 </div>
 
 <div class="body">
+  <div class="sidebar">
+    <button class="compose-btn" onclick="openCompose()">Compose</button>
+    <button class="refresh-btn" onclick="loadInbox()">↻ Refresh</button>
+    <div class="user-label" id="userLabel"></div>
+    <div class="nav-item active" onclick="switchView('inbox',this)">Inbox</div>
+    <div class="nav-item" onclick="switchView('starred',this)">Starred</div>
+    <div class="nav-item" onclick="switchView('sent',this)">Sent</div>
+    <div class="nav-item" onclick="switchView('drafts',this)">Drafts</div>
+    <div class="nav-item" onclick="switchView('trash',this)">Trash</div>
+  </div>
 
-<div class="sidebar">
-
-<button class="compose-btn" onclick="openCompose()">Compose</button>
-
-<div class="nav-item active" onclick="switchView('inbox',this)">Inbox</div>
-<div class="nav-item" onclick="switchView('starred',this)">Starred</div>
-<div class="nav-item" onclick="switchView('sent',this)">Sent</div>
-<div class="nav-item" onclick="switchView('drafts',this)">Drafts</div>
-<div class="nav-item" onclick="switchView('trash',this)">Trash</div>
-
-</div>
-
-<div class="email-list" id="emailList"></div>
-
-<div class="email-panel" id="emailPanel">
-<div class="panel-placeholder">Select an email</div>
-</div>
-
+  <div class="email-list" id="emailList"></div>
+  <div class="email-panel" id="emailPanel"></div>
 </div>
 
 <div class="compose-modal" id="composeModal">
-
-<div class="compose-header">
-<span id="composeTitle">New Message</span>
-<button onclick="closeCompose()">X</button>
-</div>
-
-<div class="compose-fields">
-<input id="composeTo" placeholder="To">
-<input id="composeSubject" placeholder="Subject">
-<textarea id="composeBody" placeholder="Write message"></textarea>
-</div>
-
-<div class="compose-footer">
-<button class="send-btn" onclick="sendEmail()">Send</button>
-</div>
-
+  <div class="compose-header">
+    <span>New Message</span>
+    <button onclick="closeCompose()" style="background:none;border:none;color:white;cursor:pointer;font-size:16px;">✕</button>
+  </div>
+  <div class="compose-fields">
+    <input id="composeTo" placeholder="To">
+    <input id="composeSubject" placeholder="Subject">
+    <textarea id="composeBody" placeholder="Write message"></textarea>
+  </div>
+  <div class="compose-footer">
+    <button class="send-btn" onclick="sendEmail()">Send</button>
+  </div>
 </div>
 
 <script>
+const SERVER = "http://localhost:8080";
 
-let view="inbox";
+const userEmail = sessionStorage.getItem('userEmail');
+const userName  = sessionStorage.getItem('userName');
+if (!userEmail) window.location.href = 'login.html';
 
-const inbox=[
-{sender:"Alice",subject:"Meeting",body:"Let's meet tomorrow.",time:"10:42",star:false,read:false,attachments:[]},
-{sender:"Bob",subject:"Homework",body:"Don't forget the assignment.",time:"9:15",star:true,read:false,attachments:[{name:"notes.txt"}]}
-];
+document.getElementById('accountIcon').textContent = userName ? userName[0].toUpperCase() : '?';
+document.getElementById('userLabel').textContent = userEmail;
 
-const sent=[];
-const drafts=[];
-const trash=[];
+let view    = "inbox";
+let inbox   = [];
+let sent    = [];
+let drafts  = [];
+let trash   = [];
+let currentEmail = null;
 
-let currentEmail=null;
-
-function renderEmails(){
-
-const list=document.getElementById("emailList");
-list.innerHTML="";
-
-let source=getSource();
-const search=document.getElementById("searchInput").value.toLowerCase();
-
-source.forEach((mail,i)=>{
-
-if(search && !mail.subject.toLowerCase().includes(search) && !mail.sender.toLowerCase().includes(search)) return;
-
-const row=document.createElement("div");
-row.className="email-row "+(mail.read?"":"unread");
-
-row.innerHTML=`
-<span class="star ${mail.star?"starred":""}" onclick="toggleStar(event,${i})">★</span>
-<span class="sender">${mail.sender}</span>
-<div class="email-content">
-${mail.subject} <span class="preview">— ${mail.body}</span>
-</div>
-<span class="time">${mail.time}</span>
-`;
-
-row.onclick=()=>openEmail(i);
-
-list.appendChild(row);
-
-});
-
+// ── body helpers ──
+function cleanBody(text) {
+  return (text || '').replace(/\\n/g, '\n').replace(/\r/g, '');
 }
 
-function getSource(){
-
-if(view==="inbox") return inbox;
-if(view==="sent") return sent;
-if(view==="drafts") return drafts;
-if(view==="trash") return trash;
-if(view==="starred") return inbox.filter(m=>m.star);
-
-return inbox;
-
+function getCleanBody(mail) {
+  const body = cleanBody(mail.body || '');
+  const cutoffs = ['--- On ', '--- Original ---'];
+  let result = body;
+  for (const cut of cutoffs) {
+    const idx = body.indexOf(cut);
+    if (idx !== -1) {
+      const before = body.substring(0, idx).trim();
+      if (before.length < result.length) result = before;
+    }
+  }
+  return result;
 }
 
-function openEmail(index){
-
-const mail=getSource()[index];
-currentEmail=mail;
-
-mail.read=true;
-renderEmails();
-
-let attachHTML="";
-
-if(mail.attachments.length>0){
-
-attachHTML="<div class='attachments'><b>Attachments</b>";
-
-mail.attachments.forEach(a=>{
-attachHTML+=`<div class='attachment-item'>📎 ${a.name}</div>`;
-});
-
-attachHTML+="</div>";
-
+// ── load inbox from server ──
+async function loadInbox() {
+  const res = await fetch(SERVER + "/inbox?email=" + encodeURIComponent(userEmail));
+  inbox = await res.json();
+  if (view === 'inbox') renderEmails();
 }
 
-document.getElementById("emailPanel").innerHTML=`
-
-<h2>${mail.subject}</h2>
-<p><b>From:</b> ${mail.sender}</p>
-<p>${mail.body}</p>
-
-<br>
-
-<button onclick="reply()">Reply</button>
-<button onclick="replyAll()">Reply All</button>
-<button onclick="forward()">Forward</button>
-<button onclick="deleteEmail()">Delete</button>
-${view==="trash" ? '<button onclick="restoreEmail()">Restore</button>' : ""}
-
-${attachHTML}
-
-`;
-
+async function loadSent() {
+  const res = await fetch(SERVER + "/sent?email=" + encodeURIComponent(userEmail));
+  sent = await res.json();
+  if (view === 'sent') renderEmails();
 }
 
-function deleteEmail(){
-
-trash.push(currentEmail);
-
-let src=getSource();
-src.splice(src.indexOf(currentEmail),1);
-
-renderEmails();
-
-document.getElementById("emailPanel").innerHTML="<div class='panel-placeholder'>Email deleted</div>";
-
+function getSource() {
+  if (view === 'inbox')   return inbox;
+  if (view === 'sent')    return sent;
+  if (view === 'drafts')  return drafts;
+  if (view === 'trash')   return trash;
+  if (view === 'starred') return inbox.filter(m => m.star);
+  return inbox;
 }
 
-function restoreEmail(){
+function renderEmails() {
+  const list   = document.getElementById("emailList");
+  list.innerHTML = "";
+  const source = getSource();
+  const search = document.getElementById("searchInput").value.toLowerCase();
 
-inbox.push(currentEmail);
+  source.forEach((mail, i) => {
+    if (search && !mail.subject.toLowerCase().includes(search) &&
+        !mail.sender.toLowerCase().includes(search)) return;
 
-trash.splice(trash.indexOf(currentEmail),1);
+    const previewText = getCleanBody(mail).replace(/\n/g, ' ');
+    const preview = (previewText || mail.body || '').substring(0, 80);
 
-renderEmails();
-
-document.getElementById("emailPanel").innerHTML="<div class='panel-placeholder'>Email restored</div>";
-
+    const row = document.createElement("div");
+    row.className = "email-row " + (mail.read ? "" : "unread");
+    row.innerHTML = `
+      <span class="star ${mail.star ? 'starred' : ''}" onclick="toggleStar(event,${i})">★</span>
+      <span class="sender">${mail.sender}</span>
+      <div class="email-content">
+        ${mail.subject} <span class="preview">— ${preview}</span>
+      </div>
+      <span class="time">${mail.time}${view==='drafts'?' <i style="color:#999">Draft</i>':''}</span>
+    `;
+    row.onclick = () => openEmail(i);
+    list.appendChild(row);
+  });
 }
 
-function toggleStar(e,index){
+function openEmail(index) {
+  const mail = getSource()[index];
+  currentEmail = mail;
+  mail.read = true;
+  renderEmails();
 
-e.stopPropagation();
+  // if draft, reopen in compose but keep it in drafts until sent
+  if (view === 'drafts') {
+    document.getElementById("composeTo").value      = mail.recipient || '';
+    document.getElementById("composeSubject").value = mail.subject || '';
+    document.getElementById("composeBody").value    = cleanBody(mail.body || '');
+    document.getElementById("composeModal").classList.add("open");
+    // store which draft index we're editing so we can remove it on send
+    window.editingDraftIndex = index;
+    return;
+  }
 
-const src=getSource();
-src[index].star=!src[index].star;
-
-renderEmails();
-
+  const formattedBody = cleanBody(mail.body || '').replace(/\n/g, '<br>');
+  document.getElementById("emailPanel").style.display = 'block';
+  document.getElementById("emailPanel").innerHTML = `
+    <h2>${mail.subject}</h2>
+    <p><b>From:</b> ${mail.sender}</p>
+    <p><b>To:</b> ${mail.recipient || ''}</p>
+    <p><b>Time:</b> ${mail.time}</p>
+    <br>
+    <p>${formattedBody}</p>
+    <br>
+    <button onclick="reply()">Reply</button>
+    <button onclick="replyAll()">Reply All</button>
+    <button onclick="forward()">Forward</button>
+    <button onclick="deleteEmail()">Delete</button>
+    ${view === 'trash' ? '<button onclick="restoreEmail()">Restore</button>' : ''}
+  `;
 }
 
-function reply(){
+function deleteEmail() {
+  if (!currentEmail) return;
+  const src = getSource();
+  const idx = src.indexOf(currentEmail);
+  if (idx === -1) return;
 
-openCompose();
-document.getElementById("composeTo").value=currentEmail.sender;
-document.getElementById("composeSubject").value="Re: "+currentEmail.subject;
+  if (view === 'trash' || view === 'drafts') {
+    src.splice(idx, 1);
+  } else {
+    trash.push(currentEmail);
+    src.splice(idx, 1);
+  }
 
+  currentEmail = null;
+  renderEmails();
+  document.getElementById("emailPanel").style.display = 'none';
 }
 
-function replyAll(){
-reply();
+function restoreEmail() {
+  if (!currentEmail) return;
+  inbox.unshift(currentEmail);
+  trash.splice(trash.indexOf(currentEmail), 1);
+  currentEmail = null;
+  switchView('inbox', document.querySelector('.nav-item'));
+  document.getElementById("emailPanel").style.display = 'none';
 }
 
-function forward(){
-
-openCompose();
-document.getElementById("composeSubject").value="Fwd: "+currentEmail.subject;
-document.getElementById("composeBody").value=currentEmail.body;
-
+function toggleStar(e, index) {
+  e.stopPropagation();
+  const src = getSource();
+  src[index].star = !src[index].star;
+  renderEmails();
 }
 
-function openCompose(){
-document.getElementById("composeModal").classList.add("open");
+function reply() {
+  openCompose();
+  document.getElementById("composeTo").value      = currentEmail.sender;
+  const subj = currentEmail.subject.replace(/^(Re:\s*)+/i, '');
+  document.getElementById("composeSubject").value = "Re: " + subj;
+  const clean = getCleanBody(currentEmail);
+  const quote = "\n--- On " + currentEmail.time + ", " + currentEmail.sender + " wrote ---\n" + clean;
+  document.getElementById("composeBody").value = quote;
+  const ta = document.getElementById("composeBody");
+  ta.focus();
+  ta.setSelectionRange(0, 0);
+  ta.scrollTop = 0;
 }
 
-function closeCompose(){
+function replyAll() { reply(); }
 
-const to=document.getElementById("composeTo").value;
-const subject=document.getElementById("composeSubject").value;
-const body=document.getElementById("composeBody").value;
-
-if(to||subject||body){
-if(confirm("Save draft?")){
-drafts.push({sender:"Me",subject,body,time:"Draft",star:false,read:true,attachments:[]});
-}
+function forward() {
+  openCompose();
+  const subj = currentEmail.subject.replace(/^(Fwd:\s*)+/i, '');
+  document.getElementById("composeSubject").value = "Fwd: " + subj;
+  document.getElementById("composeBody").value    = getCleanBody(currentEmail);
 }
 
-document.getElementById("composeModal").classList.remove("open");
-
+function openCompose() {
+  window.editingDraftIndex = undefined;
+  document.getElementById("composeModal").classList.add("open");
 }
 
-function sendEmail(){
+function closeCompose() {
+  const to      = document.getElementById("composeTo").value;
+  const subject = document.getElementById("composeSubject").value;
+  const body    = document.getElementById("composeBody").value;
 
-const to=document.getElementById("composeTo").value;
-const subject=document.getElementById("composeSubject").value;
-const body=document.getElementById("composeBody").value;
+  if (to || subject || body) {
+    const draftObj = { sender: userEmail, recipient: to, subject, body, time: "Draft", star: false, read: true };
+    if (window.editingDraftIndex !== undefined) {
+      // replace the existing draft instead of adding a new one
+      drafts[window.editingDraftIndex] = draftObj;
+      window.editingDraftIndex = undefined;
+    } else {
+      drafts.push(draftObj);
+    }
+    if (view === 'drafts') renderEmails();
+  }
 
-if(!to){
-alert("Recipient required");
-return;
+  document.getElementById("composeModal").classList.remove("open");
+  clearCompose();
 }
 
-sent.push({sender:"Me",subject,body,time:"Now",star:false,read:true,attachments:[]});
-
-document.getElementById("composeModal").classList.remove("open");
-
-document.getElementById("composeTo").value="";
-document.getElementById("composeSubject").value="";
-document.getElementById("composeBody").value="";
-
-alert("Email sent!");
-
+function clearCompose() {
+  document.getElementById("composeTo").value      = "";
+  document.getElementById("composeSubject").value = "";
+  document.getElementById("composeBody").value    = "";
 }
 
-function switchView(v,el){
+async function sendEmail() {
+  const to      = document.getElementById("composeTo").value.trim();
+  const subject = document.getElementById("composeSubject").value.trim();
+  const body    = document.getElementById("composeBody").value.trim();
 
-view=v;
+  if (!to) { alert("Recipient required"); return; }
 
-document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
-el.classList.add("active");
+  const res  = await fetch(SERVER + "/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sender: userEmail, recipient: to, subject, body })
+  });
+  const data = await res.json();
 
-renderEmails();
-
+  if (data.success) {
+    // remove draft if we were editing one
+    if (window.editingDraftIndex !== undefined) {
+      drafts.splice(window.editingDraftIndex, 1);
+      window.editingDraftIndex = undefined;
+    }
+    alert("Email sent!");
+    document.getElementById("composeModal").classList.remove("open");
+    clearCompose();
+    loadSent();
+  } else {
+    alert("Failed to send: " + (data.error || "unknown error"));
+  }
 }
 
-function toggleMenu(){
-
-const m=document.getElementById("accountMenu");
-m.style.display=m.style.display==="block"?"none":"block";
-
+function switchView(v, el) {
+  view = v;
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("emailPanel").style.display = 'none';
+  if (v === 'sent') loadSent();
+  renderEmails();
 }
 
-function logout(){
-alert("Logged out");
+function toggleMenu() {
+  const m = document.getElementById("accountMenu");
+  m.style.display = m.style.display === "block" ? "none" : "block";
 }
 
-renderEmails();
+function logout() {
+  sessionStorage.clear();
+  window.location.href = 'login.html';
+}
 
+loadInbox();
 </script>
-
 </body>
 </html>
