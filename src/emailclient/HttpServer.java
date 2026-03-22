@@ -14,14 +14,16 @@ public class HttpServer {
         com.sun.net.httpserver.HttpServer server =
             com.sun.net.httpserver.HttpServer.create(new InetSocketAddress(8080), 0);
 
-        server.createContext("/signup",    new SignupHandler());
-        server.createContext("/login",     new LoginHandler());
-        server.createContext("/send",      new SendHandler());
-        server.createContext("/inbox",     new InboxHandler());
-        server.createContext("/sent",      new SentHandler());
-        server.createContext("/delete",    new DeleteHandler());
-        server.createContext("/index.html",new StaticHandler());
-        server.createContext("/login.html",new StaticHandler());
+        server.createContext("/signup",         new SignupHandler());
+        server.createContext("/login",          new LoginHandler());
+        server.createContext("/send",           new SendHandler());
+        server.createContext("/inbox",          new InboxHandler());
+        server.createContext("/sent",           new SentHandler());
+        server.createContext("/delete",         new DeleteHandler());
+        server.createContext("/createSubEmail", new CreateSubEmailHandler());
+        server.createContext("/getSubEmails",   new GetSubEmailsHandler());
+        server.createContext("/index.html",     new StaticHandler());
+        server.createContext("/login.html",     new StaticHandler());
         server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(4));
 
         server.start();
@@ -110,49 +112,93 @@ public class HttpServer {
         public void handle(HttpExchange ex) throws IOException {
             if (handleOptions(ex)) return;
 
-            String body      = readBody(ex);
-            System.out.println("=== SEND DEBUG ===");
-            System.out.println("Body length: " + body.length());
-            System.out.println("Has attachments key: " + body.contains("\"attachments\""));
-            String sender    = FileStorage.getValue(body, "sender");
+            String body = readBody(ex);
+
+            String sender = FileStorage.getValue(body, "sender");
             String recipient = FileStorage.getValue(body, "recipient");
-            String subject   = FileStorage.getValue(body, "subject");
+            String subject = FileStorage.getValue(body, "subject");
             String emailBody = FileStorage.getValue(body, "body");
 
-            // extract raw attachments array
             String attachments = "[]";
             int attIdx = body.indexOf("\"attachments\":");
+
             if (attIdx != -1) {
                 int arrStart = body.indexOf("[", attIdx);
+
                 if (arrStart != -1) {
-                    int depth = 0, arrEnd = arrStart;
+                    int depth = 0;
+                    int arrEnd = arrStart;
+
                     for (int i = arrStart; i < body.length(); i++) {
-                        if (body.charAt(i) == '[') depth++;
-                        else if (body.charAt(i) == ']') { depth--; if (depth == 0) { arrEnd = i; break; } }
+                        if (body.charAt(i) == '[') {
+                            depth++;
+                        }
+
+                        if (body.charAt(i) == ']') {
+                            depth--;
+                            if (depth == 0) {
+                                arrEnd = i;
+                                break;
+                            }
+                        }
                     }
+
                     attachments = body.substring(arrStart, arrEnd + 1);
                 }
             }
 
             if (recipient.isEmpty()) {
-                respond(ex, 400, "{\"error\":\"Recipient required\"}"); return;
+                respond(ex, 400, "{\"error\":\"Recipient required\"}");
+                return;
             }
 
-            String id   = String.valueOf(System.currentTimeMillis());
+            String actualRecipient = recipient;
+
+            String subEmailJson = FileStorage.findSubEmail(recipient);
+
+            if (!subEmailJson.isEmpty()) {
+                boolean isActive = FileStorage.getValue(subEmailJson, "isActive").equals("true");
+                String ownerEmail = FileStorage.getValue(subEmailJson, "ownerEmail");
+                String[] allowedSenders = FileStorage.getArrayValues(subEmailJson, "allowedSenders");
+
+                if (!isActive) {
+                    respond(ex, 403, "{\"error\":\"SubEmail is inactive\"}");
+                    return;
+                }
+
+                if (allowedSenders.length > 0) {
+                    boolean allowed = false;
+
+                    for (int i = 0; i < allowedSenders.length; i++) {
+                        if (allowedSenders[i].equalsIgnoreCase(sender)) {
+                            allowed = true;
+                            break;
+                        }
+                    }
+
+                    if (!allowed) {
+                        respond(ex, 403, "{\"error\":\"Sender not allowed for this SubEmail\"}");
+                        return;
+                    }
+                }
+
+                actualRecipient = ownerEmail;
+            }
+
+            String id = String.valueOf(System.currentTimeMillis());
             String time = new Date().toString();
 
-            String inboxFile = "inbox_" + recipient.replace("@","_").replace(".","_") + ".json";
+            String inboxFile = "inbox_" + actualRecipient.replace("@", "_").replace(".", "_") + ".json";
             String emailJson = FileStorage.buildEmailJson(id, sender, recipient, subject, emailBody, time, attachments);
             FileStorage.appendEmail(inboxFile, emailJson);
 
-            String sentFile = "sent_" + sender.replace("@","_").replace(".","_") + ".json";
+            String sentFile = "sent_" + sender.replace("@", "_").replace(".", "_") + ".json";
             FileStorage.appendEmail(sentFile, emailJson);
 
             System.out.println("Email saved: " + sender + " → " + recipient);
             respond(ex, 200, "{\"success\":true}");
         }
     }
-
     // ── /inbox ──
     static class InboxHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {
@@ -226,6 +272,67 @@ public class HttpServer {
         }
     }
 
+    // ── /createSubEmail ──
+    static class CreateSubEmailHandler implements HttpHandler {
+        public void handle(HttpExchange ex) throws IOException {
+            if (handleOptions(ex)) return;
+
+            String body = readBody(ex);
+            String ownerEmail = FileStorage.getValue(body, "ownerEmail");
+            String subAddress = FileStorage.getValue(body, "subAddress");
+            String label = FileStorage.getValue(body, "label");
+
+            if (ownerEmail.isEmpty() || subAddress.isEmpty() || label.isEmpty()) {
+                respond(ex, 400, "{\"error\":\"Missing fields\"}");
+                return;
+            }
+
+            if (FileStorage.subEmailExists(subAddress)) {
+                respond(ex, 400, "{\"error\":\"SubEmail already exists\"}");
+                return;
+            }
+
+            String[] allowedSenders = FileStorage.getArrayValues(body, "allowedSenders");
+
+            SubEmail subEmail = new SubEmail(
+                String.valueOf(System.currentTimeMillis()),
+                ownerEmail,
+                subAddress,
+                label,
+                allowedSenders,
+                true
+            );
+
+            FileStorage.appendSubEmail(ownerEmail, subEmail.toJson());
+
+            System.out.println("Created SubEmail: " + subAddress + " for " + ownerEmail);
+            respond(ex, 200, "{\"success\":true}");
+        }
+    }
+
+    // ── /getSubEmails ──
+    static class GetSubEmailsHandler implements HttpHandler {
+        public void handle(HttpExchange ex) throws IOException {
+            if (handleOptions(ex)) return;
+
+            String query = ex.getRequestURI().getQuery();
+            String email = "";
+
+            if (query != null && query.startsWith("email=")) {
+                email = query.substring(6);
+            }
+
+            if (email.isEmpty()) {
+                respond(ex, 400, "{\"error\":\"Email required\"}");
+                return;
+            }
+
+            String content = FileStorage.getSubEmails(email);
+            respond(ex, 200, content);
+        }
+    }
+    
+      
     // ── serves index.html and login.html ──
     static class StaticHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {

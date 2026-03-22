@@ -71,20 +71,24 @@ public class FileStorage {
         }
     }
 
-    // builds a simple email JSON object from parts
     public static String buildEmailJson(String id, String sender, String recipient,
-                                         String subject, String body, String time, String attachments) {
-        return "{" +
-            "\"id\":" + jsonStr(id) + "," +
-            "\"sender\":" + jsonStr(sender) + "," +
-            "\"recipient\":" + jsonStr(recipient) + "," +
-            "\"subject\":" + jsonStr(subject) + "," +
-            "\"body\":" + jsonStr(body) + "," +
-            "\"time\":" + jsonStr(time) + "," +
-            "\"read\":false," +
-            "\"star\":false" +
-        "}";
-    }
+            String subject, String body, String time, String attachments) {
+if (attachments == null || attachments.trim().isEmpty()) {
+attachments = "[]";
+}
+
+return "{"
++ "\"id\":" + jsonStr(id) + ","
++ "\"sender\":" + jsonStr(sender) + ","
++ "\"recipient\":" + jsonStr(recipient) + ","
++ "\"subject\":" + jsonStr(subject) + ","
++ "\"body\":" + jsonStr(body) + ","
++ "\"time\":" + jsonStr(time) + ","
++ "\"attachments\":" + attachments + ","
++ "\"read\":false,"
++ "\"star\":false"
++ "}";
+}
 
     // appends a new email JSON object to an inbox file
     // the file stores a JSON array: [{...},{...}]
@@ -132,4 +136,136 @@ public class FileStorage {
         }
         return "";
     }
+
+// -------------------------------
+// SubEmail helpers
+// -------------------------------
+
+public static void appendSubEmail(String ownerEmail, String subEmailJson) {
+    String safeOwner = ownerEmail.replace("@", "_").replace(".", "_");
+    String filename = "subemails_" + safeOwner + ".json";
+
+    String existing = readFile(filename).trim();
+    String updated;
+
+    if (existing.isEmpty() || existing.equals("[]")) {
+        updated = "[" + subEmailJson + "]";
+    } else {
+        updated = existing.substring(0, existing.lastIndexOf("]")) + "," + subEmailJson + "]";
+    }
+
+    writeFile(filename, updated);
+}
+
+public static String getSubEmails(String ownerEmail) {
+    String safeOwner = ownerEmail.replace("@", "_").replace(".", "_");
+    String filename = "subemails_" + safeOwner + ".json";
+    String content = readFile(filename).trim();
+
+    if (content.isEmpty()) {
+        return "[]";
+    }
+
+    return content;
+}
+
+public static boolean subEmailExists(String subAddress) {
+    File dir = new File(DATA_DIR);
+    File[] files = dir.listFiles();
+
+    if (files == null) {
+        return false;
+    }
+
+    for (int i = 0; i < files.length; i++) {
+        String name = files[i].getName();
+
+        if (name.startsWith("subemails_") && name.endsWith(".json")) {
+            String content = readFile(name);
+            if (content.contains("\"subAddress\":\"" + subAddress + "\"")) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+public static String findSubEmail(String subAddress) {
+    File dir = new File(DATA_DIR);
+    File[] files = dir.listFiles();
+
+    if (files == null) {
+        return "";
+    }
+
+    for (int i = 0; i < files.length; i++) {
+        String name = files[i].getName();
+
+        if (name.startsWith("subemails_") && name.endsWith(".json")) {
+            String content = readFile(name).trim();
+
+            if (content.isEmpty() || content.equals("[]")) {
+                continue;
+            }
+
+            String cleaned = content.substring(1, content.length() - 1);
+            String[] parts = cleaned.split("\\},\\{");
+
+            for (int j = 0; j < parts.length; j++) {
+                String obj = parts[j].trim();
+
+                if (!obj.startsWith("{")) {
+                    obj = "{" + obj;
+                }
+
+                if (!obj.endsWith("}")) {
+                    obj = obj + "}";
+                }
+
+                if (getValue(obj, "subAddress").equalsIgnoreCase(subAddress)) {
+                    return obj;
+                }
+            }
+        }
+    }
+
+    return "";
+}
+
+public static String[] getArrayValues(String json, String key) {
+    String search = "\"" + key + "\"";
+    int keyIdx = json.indexOf(search);
+
+    if (keyIdx == -1) {
+        return new String[0];
+    }
+
+    int colon = json.indexOf(":", keyIdx);
+    if (colon == -1) {
+        return new String[0];
+    }
+
+    int start = json.indexOf("[", colon);
+    int end = json.indexOf("]", start);
+
+    if (start == -1 || end == -1) {
+        return new String[0];
+    }
+
+    String inside = json.substring(start + 1, end).trim();
+
+    if (inside.isEmpty()) {
+        return new String[0];
+    }
+
+    String[] raw = inside.split(",");
+    String[] result = new String[raw.length];
+
+    for (int i = 0; i < raw.length; i++) {
+        result[i] = raw[i].trim().replace("\"", "");
+    }
+
+    return result;
+}
 }
