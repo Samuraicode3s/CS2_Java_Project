@@ -41,6 +41,7 @@ body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100v
 .compose-fields textarea{height:200px;resize:none;font-family:monospace;font-size:13px;}
 .compose-footer{padding:10px;}
 .send-btn{background:#1a73e8;color:white;border:none;padding:10px 20px;border-radius:20px;cursor:pointer;}
+.delete-sub-btn{margin-top:8px;background:#ea4335;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -120,15 +121,14 @@ if (!userEmail) window.location.href = 'login.html';
 document.getElementById('accountIcon').textContent = userName ? userName[0].toUpperCase() : '?';
 document.getElementById('userLabel').textContent = userEmail;
 
-let view    = "inbox";
-let inbox   = [];
-let sent    = [];
-let drafts  = [];
-let trash   = [];
+let view = "inbox";
+let inbox = [];
+let sent = [];
+let drafts = [];
+let trash = [];
 let subEmails = [];
 let currentEmail = null;
 
-// ── body helpers ──
 function cleanBody(text) {
   return (text || '').replace(/\\n/g, '\n').replace(/\r/g, '');
 }
@@ -147,9 +147,7 @@ function getCleanBody(mail) {
   return result;
 }
 
-// ── attachment storage: keyed by email id ──
-const attachmentStore = {};
-let pendingAttachments = []; // files waiting to be sent
+let pendingAttachments = [];
 
 function handleAttach(e) {
   const files = Array.from(e.target.files);
@@ -184,8 +182,8 @@ function renderAttachments(attachments) {
 function formatSize(bytes) {
   if (!bytes) return '';
   if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 function previewAttachment(idx) {
@@ -243,10 +241,10 @@ async function loadSubEmails() {
 }
 
 function getSource() {
-  if (view === 'inbox')   return inbox;
-  if (view === 'sent')    return sent;
-  if (view === 'drafts')  return drafts;
-  if (view === 'trash')   return trash;
+  if (view === 'inbox') return inbox;
+  if (view === 'sent') return sent;
+  if (view === 'drafts') return drafts;
+  if (view === 'trash') return trash;
   if (view === 'starred') return inbox.filter(m => m.star);
   return inbox;
 }
@@ -254,7 +252,6 @@ function getSource() {
 function renderEmails() {
   const list = document.getElementById("emailList");
   list.innerHTML = "";
-
   document.getElementById("subEmailPanel").style.display = "none";
 
   const source = getSource();
@@ -311,6 +308,7 @@ function renderSubEmails() {
           <p><b>Label:</b> ${sub.label}</p>
           <p><b>Status:</b> ${sub.isActive ? "Active" : "Inactive"}</p>
           <p><b>Allowed Senders:</b> ${senders}</p>
+          <button class="delete-sub-btn" onclick="deleteSubEmail('${sub.subAddress}')">Delete</button>
         </div>
       `;
     }
@@ -327,9 +325,9 @@ function openEmail(index) {
   renderEmails();
 
   if (view === 'drafts') {
-    document.getElementById("composeTo").value      = mail.recipient || '';
+    document.getElementById("composeTo").value = mail.recipient || '';
     document.getElementById("composeSubject").value = mail.subject || '';
-    document.getElementById("composeBody").value    = cleanBody(mail.body || '');
+    document.getElementById("composeBody").value = cleanBody(mail.body || '');
     document.getElementById("composeModal").classList.add("open");
     window.editingDraftIndex = index;
     return;
@@ -504,6 +502,29 @@ async function createSubEmail() {
   }
 }
 
+async function deleteSubEmail(subAddress) {
+  const ok = confirm("Delete this SubEmail?");
+  if (!ok) return;
+
+  const res = await fetch(SERVER + "/deleteSubEmail", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ownerEmail: userEmail,
+      subAddress: subAddress
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    alert("SubEmail deleted");
+    loadSubEmails();
+  } else {
+    alert("Failed to delete SubEmail");
+  }
+}
+
 async function sendEmail() {
   const to = document.getElementById("composeTo").value.trim();
   const subject = document.getElementById("composeSubject").value.trim();
@@ -525,6 +546,7 @@ async function sendEmail() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sender: userEmail, recipient: to, subject, body, attachments })
   });
+
   const data = await res.json();
 
   if (data.success) {

@@ -22,6 +22,7 @@ public class HttpServer {
         server.createContext("/delete",         new DeleteHandler());
         server.createContext("/createSubEmail", new CreateSubEmailHandler());
         server.createContext("/getSubEmails",   new GetSubEmailsHandler());
+        server.createContext("/deleteSubEmail", new DeleteSubEmailHandler());
         server.createContext("/index.html",     new StaticHandler());
         server.createContext("/login.html",     new StaticHandler());
         server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(4));
@@ -58,24 +59,28 @@ public class HttpServer {
         public void handle(HttpExchange ex) throws IOException {
             if (handleOptions(ex)) return;
 
-            String body     = readBody(ex);
-            String name     = FileStorage.getValue(body, "name");
-            String email    = FileStorage.getValue(body, "email");
+            String body = readBody(ex);
+            String name = FileStorage.getValue(body, "name");
+            String email = FileStorage.getValue(body, "email");
             String password = FileStorage.getValue(body, "password");
 
             if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
-                respond(ex, 400, "{\"error\":\"Missing fields\"}"); return;
+                respond(ex, 400, "{\"error\":\"Missing fields\"}");
+                return;
             }
+
             if (FileStorage.userExists(email)) {
-                respond(ex, 400, "{\"error\":\"Email already registered\"}"); return;
+                respond(ex, 400, "{\"error\":\"Email already registered\"}");
+                return;
             }
 
             String id = String.valueOf(System.currentTimeMillis());
-            String userJson = "{" +
-                "\"id\":"       + FileStorage.jsonStr(id)       + "," +
-                "\"name\":"     + FileStorage.jsonStr(name)     + "," +
-                "\"email\":"    + FileStorage.jsonStr(email)    + "," +
-                "\"password\":" + FileStorage.jsonStr(password) + "}";
+            String userJson = "{"
+                + "\"id\":" + FileStorage.jsonStr(id) + ","
+                + "\"name\":" + FileStorage.jsonStr(name) + ","
+                + "\"email\":" + FileStorage.jsonStr(email) + ","
+                + "\"password\":" + FileStorage.jsonStr(password)
+                + "}";
 
             FileStorage.appendUser(userJson);
             System.out.println("New user registered: " + email);
@@ -88,22 +93,25 @@ public class HttpServer {
         public void handle(HttpExchange ex) throws IOException {
             if (handleOptions(ex)) return;
 
-            String body     = readBody(ex);
-            String email    = FileStorage.getValue(body, "email");
+            String body = readBody(ex);
+            String email = FileStorage.getValue(body, "email");
             String password = FileStorage.getValue(body, "password");
             String userJson = FileStorage.findUser(email);
 
             if (userJson.isEmpty()) {
-                respond(ex, 401, "{\"error\":\"User not found\"}"); return;
+                respond(ex, 401, "{\"error\":\"User not found\"}");
+                return;
             }
+
             if (!FileStorage.getValue(userJson, "password").equals(password)) {
-                respond(ex, 401, "{\"error\":\"Wrong password\"}"); return;
+                respond(ex, 401, "{\"error\":\"Wrong password\"}");
+                return;
             }
 
             String name = FileStorage.getValue(userJson, "name");
             System.out.println("User logged in: " + email);
-            respond(ex, 200, "{\"success\":true,\"name\":" + FileStorage.jsonStr(name) +
-                             ",\"email\":" + FileStorage.jsonStr(email) + "}");
+            respond(ex, 200, "{\"success\":true,\"name\":" + FileStorage.jsonStr(name)
+                    + ",\"email\":" + FileStorage.jsonStr(email) + "}");
         }
     }
 
@@ -132,9 +140,7 @@ public class HttpServer {
                     for (int i = arrStart; i < body.length(); i++) {
                         if (body.charAt(i) == '[') {
                             depth++;
-                        }
-
-                        if (body.charAt(i) == ']') {
+                        } else if (body.charAt(i) == ']') {
                             depth--;
                             if (depth == 0) {
                                 arrEnd = i;
@@ -153,7 +159,6 @@ public class HttpServer {
             }
 
             String actualRecipient = recipient;
-
             String subEmailJson = FileStorage.findSubEmail(recipient);
 
             if (!subEmailJson.isEmpty()) {
@@ -199,6 +204,7 @@ public class HttpServer {
             respond(ex, 200, "{\"success\":true}");
         }
     }
+
     // ── /inbox ──
     static class InboxHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {
@@ -207,9 +213,12 @@ public class HttpServer {
             String query = ex.getRequestURI().getQuery();
             String email = (query != null && query.startsWith("email=")) ? query.substring(6) : "";
 
-            if (email.isEmpty()) { respond(ex, 400, "{\"error\":\"Email required\"}"); return; }
+            if (email.isEmpty()) {
+                respond(ex, 400, "{\"error\":\"Email required\"}");
+                return;
+            }
 
-            String content = FileStorage.readFile("inbox_" + email.replace("@","_").replace(".","_") + ".json");
+            String content = FileStorage.readFile("inbox_" + email.replace("@", "_").replace(".", "_") + ".json");
             respond(ex, 200, content.isEmpty() ? "[]" : content);
         }
     }
@@ -222,9 +231,12 @@ public class HttpServer {
             String query = ex.getRequestURI().getQuery();
             String email = (query != null && query.startsWith("email=")) ? query.substring(6) : "";
 
-            if (email.isEmpty()) { respond(ex, 400, "{\"error\":\"Email required\"}"); return; }
+            if (email.isEmpty()) {
+                respond(ex, 400, "{\"error\":\"Email required\"}");
+                return;
+            }
 
-            String content = FileStorage.readFile("sent_" + email.replace("@","_").replace(".","_") + ".json");
+            String content = FileStorage.readFile("sent_" + email.replace("@", "_").replace(".", "_") + ".json");
             respond(ex, 200, content.isEmpty() ? "[]" : content);
         }
     }
@@ -234,17 +246,18 @@ public class HttpServer {
         public void handle(HttpExchange ex) throws IOException {
             if (handleOptions(ex)) return;
 
-            String body   = readBody(ex);
-            String email  = FileStorage.getValue(body, "email");
-            String id     = FileStorage.getValue(body, "id");
+            String body = readBody(ex);
+            String email = FileStorage.getValue(body, "email");
+            String id = FileStorage.getValue(body, "id");
             String folder = FileStorage.getValue(body, "folder");
 
             if (email.isEmpty() || id.isEmpty() || folder.isEmpty()) {
-                respond(ex, 400, "{\"error\":\"Missing fields\"}"); return;
+                respond(ex, 400, "{\"error\":\"Missing fields\"}");
+                return;
             }
 
-            String filename = folder + "_" + email.replace("@","_").replace(".","_") + ".json";
-            String content  = FileStorage.readFile(filename).trim();
+            String filename = folder + "_" + email.replace("@", "_").replace(".", "_") + ".json";
+            String content = FileStorage.readFile(filename).trim();
 
             if (!content.isEmpty() && !content.equals("[]")) {
                 FileStorage.writeFile(filename, removeById(content, id));
@@ -255,18 +268,24 @@ public class HttpServer {
         }
 
         private String removeById(String jsonArray, String id) {
-            String[] parts = jsonArray.replace("[","").replace("]","").split("\\},\\{");
+            String[] parts = jsonArray.replace("[", "").replace("]", "").split("\\},\\{");
             StringBuilder sb = new StringBuilder("[");
             boolean first = true;
+
             for (String part : parts) {
                 String obj = part.trim();
                 if (!obj.startsWith("{")) obj = "{" + obj;
-                if (!obj.endsWith("}"))   obj = obj + "}";
-                if (FileStorage.getValue(obj, "id").equals(id)) continue;
+                if (!obj.endsWith("}")) obj = obj + "}";
+
+                if (FileStorage.getValue(obj, "id").equals(id)) {
+                    continue;
+                }
+
                 if (!first) sb.append(",");
                 sb.append(obj);
                 first = false;
             }
+
             sb.append("]");
             return sb.toString();
         }
@@ -331,21 +350,84 @@ public class HttpServer {
             respond(ex, 200, content);
         }
     }
-    
-      
+
+    // ── /deleteSubEmail ──
+    static class DeleteSubEmailHandler implements HttpHandler {
+        public void handle(HttpExchange ex) throws IOException {
+            if (handleOptions(ex)) return;
+
+            String body = readBody(ex);
+            String ownerEmail = FileStorage.getValue(body, "ownerEmail");
+            String subAddress = FileStorage.getValue(body, "subAddress");
+
+            if (ownerEmail.isEmpty() || subAddress.isEmpty()) {
+                respond(ex, 400, "{\"error\":\"Missing fields\"}");
+                return;
+            }
+
+            String safeOwner = ownerEmail.replace("@", "_").replace(".", "_");
+            String filename = "subemails_" + safeOwner + ".json";
+            String content = FileStorage.readFile(filename).trim();
+
+            if (content.isEmpty() || content.equals("[]")) {
+                respond(ex, 200, "{\"success\":true}");
+                return;
+            }
+
+            String cleaned = content.substring(1, content.length() - 1);
+            String[] parts = cleaned.split("\\},\\{");
+
+            StringBuilder sb = new StringBuilder("[");
+            boolean first = true;
+
+            for (String part : parts) {
+                String obj = part.trim();
+
+                if (!obj.startsWith("{")) obj = "{" + obj;
+                if (!obj.endsWith("}")) obj = obj + "}";
+
+                if (FileStorage.getValue(obj, "subAddress").equalsIgnoreCase(subAddress)) {
+                    continue;
+                }
+
+                if (!first) sb.append(",");
+                sb.append(obj);
+                first = false;
+            }
+
+            sb.append("]");
+            FileStorage.writeFile(filename, sb.toString());
+
+            System.out.println("Deleted SubEmail: " + subAddress);
+            respond(ex, 200, "{\"success\":true}");
+        }
+    }
+
     // ── serves index.html and login.html ──
     static class StaticHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {
             if (!ex.getRequestMethod().equalsIgnoreCase("GET")) {
-                respond(ex, 405, "{\"error\":\"Method not allowed\"}"); return;
+                respond(ex, 405, "{\"error\":\"Method not allowed\"}");
+                return;
             }
+
             String path = ex.getRequestURI().getPath();
-            if (path.equals("/") || path.equals("/index.html")) path = "/index.html";
-            else if (path.equals("/login.html")) path = "/login.html";
-            else { respond(ex, 404, "{\"error\":\"Not found\"}"); return; }
+
+            if (path.equals("/") || path.equals("/index.html")) {
+                path = "/index.html";
+            } else if (path.equals("/login.html")) {
+                path = "/login.html";
+            } else {
+                respond(ex, 404, "{\"error\":\"Not found\"}");
+                return;
+            }
 
             File f = new File("." + path);
-            if (!f.exists()) { respond(ex, 404, "{\"error\":\"File not found\"}"); return; }
+
+            if (!f.exists()) {
+                respond(ex, 404, "{\"error\":\"File not found\"}");
+                return;
+            }
 
             byte[] bytes = java.nio.file.Files.readAllBytes(f.toPath());
             ex.getResponseHeaders().add("Content-Type", "text/html; charset=utf-8");
