@@ -67,10 +67,12 @@ body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100v
     <div class="nav-item" onclick="switchView('sent',this)">Sent</div>
     <div class="nav-item" onclick="switchView('drafts',this)">Drafts</div>
     <div class="nav-item" onclick="switchView('trash',this)">Trash</div>
+    <div class="nav-item" onclick="switchView('subemails',this)">SubEmails</div>
   </div>
 
   <div class="email-list" id="emailList"></div>
   <div class="email-panel" id="emailPanel"></div>
+  <div class="email-panel" id="subEmailPanel" style="display:none;"></div>
 </div>
 
 <div class="compose-modal" id="composeModal">
@@ -93,6 +95,21 @@ body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100v
   </div>
 </div>
 
+<div class="compose-modal" id="subEmailModal">
+  <div class="compose-header">
+    <span>Create SubEmail</span>
+    <button onclick="closeSubEmailModal()" style="background:none;border:none;color:white;cursor:pointer;font-size:16px;">✕</button>
+  </div>
+  <div class="compose-fields">
+    <input id="subAddress" placeholder="SubEmail address (example: shopping@submail.com)">
+    <input id="subLabel" placeholder="Label (example: Shopping)">
+    <input id="allowedSenders" placeholder="Allowed senders, comma-separated">
+  </div>
+  <div class="compose-footer">
+    <button class="send-btn" onclick="createSubEmail()">Create</button>
+  </div>
+</div>
+
 <script>
 const SERVER = "http://localhost:8080";
 
@@ -108,6 +125,7 @@ let inbox   = [];
 let sent    = [];
 let drafts  = [];
 let trash   = [];
+let subEmails = [];
 let currentEmail = null;
 
 // ── body helpers ──
@@ -129,7 +147,6 @@ function getCleanBody(mail) {
   return result;
 }
 
-// ── load inbox from server ──
 // ── attachment storage: keyed by email id ──
 const attachmentStore = {};
 let pendingAttachments = []; // files waiting to be sent
@@ -198,12 +215,12 @@ function downloadAttachment(idx) {
   link.download = a.name;
   link.click();
 }
+
 const readIds = new Set();
 
 async function loadInbox() {
   const res = await fetch(SERVER + "/inbox?email=" + encodeURIComponent(userEmail));
   const fresh = await res.json();
-  // preserve read state using email id
   fresh.forEach(m => { if (readIds.has(m.id)) m.read = true; });
   inbox = fresh;
   if (view === 'inbox') renderEmails();
@@ -217,6 +234,14 @@ async function loadSent() {
   if (view === 'sent') renderEmails();
 }
 
+async function loadSubEmails() {
+  const res = await fetch(SERVER + "/getSubEmails?email=" + encodeURIComponent(userEmail));
+  subEmails = await res.json();
+  if (view === "subemails") {
+    renderSubEmails();
+  }
+}
+
 function getSource() {
   if (view === 'inbox')   return inbox;
   if (view === 'sent')    return sent;
@@ -227,8 +252,11 @@ function getSource() {
 }
 
 function renderEmails() {
-  const list   = document.getElementById("emailList");
+  const list = document.getElementById("emailList");
   list.innerHTML = "";
+
+  document.getElementById("subEmailPanel").style.display = "none";
+
   const source = getSource();
   const search = document.getElementById("searchInput").value.toLowerCase();
 
@@ -254,6 +282,43 @@ function renderEmails() {
   });
 }
 
+function renderSubEmails() {
+  document.getElementById("emailList").innerHTML = "";
+  document.getElementById("emailPanel").style.display = "none";
+
+  const panel = document.getElementById("subEmailPanel");
+  panel.style.display = "block";
+
+  let html = `
+    <h2>SubEmails</h2>
+    <br>
+    <button class="send-btn" onclick="openSubEmailModal()">+ Create SubEmail</button>
+    <br><br>
+  `;
+
+  if (!subEmails || subEmails.length === 0) {
+    html += `<p>No SubEmails created yet.</p>`;
+  } else {
+    for (let i = 0; i < subEmails.length; i++) {
+      const sub = subEmails[i];
+      const senders = sub.allowedSenders && sub.allowedSenders.length > 0
+        ? sub.allowedSenders.join(", ")
+        : "Anyone";
+
+      html += `
+        <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;">
+          <p><b>Address:</b> ${sub.subAddress}</p>
+          <p><b>Label:</b> ${sub.label}</p>
+          <p><b>Status:</b> ${sub.isActive ? "Active" : "Inactive"}</p>
+          <p><b>Allowed Senders:</b> ${senders}</p>
+        </div>
+      `;
+    }
+  }
+
+  panel.innerHTML = html;
+}
+
 function openEmail(index) {
   const mail = getSource()[index];
   currentEmail = mail;
@@ -261,22 +326,21 @@ function openEmail(index) {
   if (mail.id) readIds.add(mail.id);
   renderEmails();
 
-  // if draft, reopen in compose but keep it in drafts until sent
   if (view === 'drafts') {
     document.getElementById("composeTo").value      = mail.recipient || '';
     document.getElementById("composeSubject").value = mail.subject || '';
     document.getElementById("composeBody").value    = cleanBody(mail.body || '');
     document.getElementById("composeModal").classList.add("open");
-    // store which draft index we're editing so we can remove it on send
     window.editingDraftIndex = index;
     return;
   }
 
   const formattedBody = cleanBody(mail.body || '').replace(/\n/g, '<br>');
   const attachHTML = renderAttachments(mail.attachments || mail._attachments);
-  // store attachments on current email for preview/download
   if (mail.attachments) mail._attachments = mail.attachments;
+
   document.getElementById("emailPanel").style.display = 'block';
+  document.getElementById("subEmailPanel").style.display = 'none';
   document.getElementById("emailPanel").innerHTML = `
     <h2>${mail.subject}</h2>
     <p><b>From:</b> ${mail.sender}</p>
@@ -300,10 +364,8 @@ async function deleteEmail() {
   const idx = src.indexOf(currentEmail);
   if (idx === -1) return;
 
-  // permanently delete from server if it has an id and is in trash
   if (currentEmail.id && view !== 'drafts') {
     const deleteFrom = view === 'trash' ? 'trash' : view;
-    // always remove from inbox/sent on server when moving to trash or deleting
     await fetch(SERVER + "/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -341,7 +403,7 @@ function toggleStar(e, index) {
 
 function reply() {
   openCompose();
-  document.getElementById("composeTo").value      = currentEmail.sender;
+  document.getElementById("composeTo").value = currentEmail.sender;
   const subj = currentEmail.subject.replace(/^(Re:\s*)+/i, '');
   document.getElementById("composeSubject").value = "Re: " + subj;
   const clean = getCleanBody(currentEmail);
@@ -353,13 +415,15 @@ function reply() {
   ta.scrollTop = 0;
 }
 
-function replyAll() { reply(); }
+function replyAll() {
+  reply();
+}
 
 function forward() {
   openCompose();
   const subj = currentEmail.subject.replace(/^(Fwd:\s*)+/i, '');
   document.getElementById("composeSubject").value = "Fwd: " + subj;
-  document.getElementById("composeBody").value    = getCleanBody(currentEmail);
+  document.getElementById("composeBody").value = getCleanBody(currentEmail);
 }
 
 function openCompose() {
@@ -368,14 +432,13 @@ function openCompose() {
 }
 
 function closeCompose() {
-  const to      = document.getElementById("composeTo").value;
+  const to = document.getElementById("composeTo").value;
   const subject = document.getElementById("composeSubject").value;
-  const body    = document.getElementById("composeBody").value;
+  const body = document.getElementById("composeBody").value;
 
   if (to || subject || body) {
     const draftObj = { sender: userEmail, recipient: to, subject, body, time: "Draft", star: false, read: true };
     if (window.editingDraftIndex !== undefined) {
-      // replace the existing draft instead of adding a new one
       drafts[window.editingDraftIndex] = draftObj;
       window.editingDraftIndex = undefined;
     } else {
@@ -389,26 +452,73 @@ function closeCompose() {
 }
 
 function clearCompose() {
-  document.getElementById("composeTo").value      = "";
+  document.getElementById("composeTo").value = "";
   document.getElementById("composeSubject").value = "";
-  document.getElementById("composeBody").value    = "";
+  document.getElementById("composeBody").value = "";
+}
+
+function openSubEmailModal() {
+  document.getElementById("subEmailModal").classList.add("open");
+}
+
+function closeSubEmailModal() {
+  document.getElementById("subEmailModal").classList.remove("open");
+  document.getElementById("subAddress").value = "";
+  document.getElementById("subLabel").value = "";
+  document.getElementById("allowedSenders").value = "";
+}
+
+async function createSubEmail() {
+  const subAddress = document.getElementById("subAddress").value.trim();
+  const label = document.getElementById("subLabel").value.trim();
+  const allowedSendersText = document.getElementById("allowedSenders").value.trim();
+
+  if (!subAddress || !label) {
+    alert("SubEmail address and label are required");
+    return;
+  }
+
+  const allowedSenders = allowedSendersText
+    ? allowedSendersText.split(",").map(s => s.trim()).filter(s => s)
+    : [];
+
+  const res = await fetch(SERVER + "/createSubEmail", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ownerEmail: userEmail,
+      subAddress: subAddress,
+      label: label,
+      allowedSenders: allowedSenders
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    alert("SubEmail created!");
+    closeSubEmailModal();
+    loadSubEmails();
+  } else {
+    alert("Failed to create SubEmail: " + (data.error || "unknown error"));
+  }
 }
 
 async function sendEmail() {
-  const to      = document.getElementById("composeTo").value.trim();
+  const to = document.getElementById("composeTo").value.trim();
   const subject = document.getElementById("composeSubject").value.trim();
-  const body    = document.getElementById("composeBody").value.trim();
+  const body = document.getElementById("composeBody").value.trim();
 
-  if (!to) { alert("Recipient required"); return; }
+  if (!to) {
+    alert("Recipient required");
+    return;
+  }
 
-  console.log("Pending attachments:", pendingAttachments.length);
   const attachments = [];
   for (const file of pendingAttachments) {
     const data = await fileToBase64(file);
-    console.log("Attachment:", file.name, "data length:", data.length);
     attachments.push({ name: file.name, size: file.size, type: file.type, data });
   }
-  console.log("Sending with attachments:", attachments.length);
 
   const res = await fetch(SERVER + "/send", {
     method: "POST",
@@ -437,8 +547,20 @@ function switchView(v, el) {
   view = v;
   document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
   el.classList.add("active");
+
   document.getElementById("emailPanel").style.display = 'none';
-  if (v === 'sent') loadSent();
+  document.getElementById("subEmailPanel").style.display = 'none';
+
+  if (v === 'sent') {
+    loadSent();
+    return;
+  }
+
+  if (v === 'subemails') {
+    loadSubEmails();
+    return;
+  }
+
   renderEmails();
 }
 
