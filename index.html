@@ -518,8 +518,9 @@ async function deleteSubEmail(subAddress) {
   const data = await res.json();
 
   if (data.success) {
+    subEmails = subEmails.filter(sub => sub.subAddress !== subAddress);
+    renderSubEmails();
     alert("SubEmail deleted");
-    loadSubEmails();
   } else {
     alert("Failed to delete SubEmail");
   }
